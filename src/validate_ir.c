@@ -4530,6 +4530,59 @@ jvst_ir_print(struct jvst_ir_stmt *stmt)
 	fprintf(stderr, "%s\n", buf);
 }
 
+static void
+ir_frame_make_info(struct jvst_ir_stmt *fr)
+{
+	size_t off, nslots;
+	struct jvst_ir_stmt *bv, *c;
+
+	assert(fr->type == JVST_IR_STMT_FRAME);
+
+	nslots = 0;
+	off = 2; // need return address and previous frame pointer
+
+	for (c = fr->u.frame.counters; c != NULL; c = c->next) {
+		assert(c->type == JVST_IR_STMT_COUNTER);
+		c->u.counter.frame_off = off;
+		off++;
+		nslots++;
+	}
+
+	for (bv = fr->u.frame.bitvecs; bv != NULL; bv = bv->next) {
+		size_t ns, rem;
+
+		assert(bv->type == JVST_IR_STMT_BITVECTOR);
+
+		ns = bv->u.bitvec.nbits / 64;
+		rem = bv->u.bitvec.nbits % 64;
+		if (rem != 0) { ns++; }
+
+		bv->u.bitvec.nslots = ns;
+		bv->u.bitvec.frame_off = off;
+		off += ns;
+		nslots += ns;
+	}
+
+	fr->u.frame.nslots = nslots;
+	fr->u.frame.spill_off = off;
+}
+
+void
+jvst_ir_make_frame_info(struct jvst_ir_stmt *ir)
+{
+	struct jvst_ir_stmt *fr;
+
+	assert(ir->type == JVST_IR_STMT_PROGRAM);
+
+	for (fr = ir->u.program.frames; fr != NULL; fr = fr->next) {
+		assert(fr->type == JVST_IR_STMT_FRAME);
+		ir_frame_make_info(fr);
+	}
+}
+
+struct jvst_ir_stmt *
+jvst_ir_liveness(struct jvst_ir_stmt *ir);
+
 struct jvst_ir_stmt *
 jvst_ir_flatten(struct jvst_ir_stmt *prog)
 {

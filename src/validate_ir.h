@@ -159,6 +159,12 @@ struct jvst_ir_frame {
 	size_t nbitvecs;
 	size_t nsplits;
 	size_t ntemps;
+
+	// temporaries used in register allocation
+	// and to generate stack information
+	size_t nslots;
+	size_t spill_off;
+	size_t nspill;
 };
 
 struct jvst_ir_stmt {
@@ -226,6 +232,8 @@ struct jvst_ir_stmt {
 			const char *label;
 			size_t ind;
 			size_t nbits;
+
+			size_t nslots;
 			size_t frame_off;
 		} bitvec;
 
@@ -343,6 +351,7 @@ struct jvst_ir_expr {
 
 		struct {
 			size_t ind;
+			struct jvst_ir_stmt *equiv;
 		} temp;
 
 		struct {
@@ -368,6 +377,19 @@ jvst_ir_stmt_copy(struct jvst_ir_stmt *ir);
 
 struct jvst_ir_stmt *
 jvst_ir_linearize(struct jvst_ir_stmt *ir);
+
+/* Assembles information about the frame.  Assigns sizes to all
+ * bitvectors, places counters and bitvectors at concrete slot offsets
+ * in the stack frame.
+ */
+void
+jvst_ir_make_frame_info(struct jvst_ir_stmt *ir);
+
+/* Performs dataflow analysis to determine liveness of temporaries and
+ * slots.
+ */
+struct jvst_ir_stmt *
+jvst_ir_liveness(struct jvst_ir_stmt *ir);
 
 /* Flattens IR, eliminates unnecessary branches, and numbers remaining
  * instructions
