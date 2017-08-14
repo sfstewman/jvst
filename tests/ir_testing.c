@@ -54,6 +54,28 @@ run_ir_test(const char *fname, const struct ir_test *t)
 			result = jvst_ir_flatten(linearized);
 		}
 		break;
+
+	case LIVE_ANNO:
+		{
+			int ret;
+			struct jvst_ir_stmt *xformed;
+
+			assert(t->xformed != NULL);
+
+			expected = t->xformed;
+			assert(expected != NULL);
+
+			simplified = jvst_cnode_simplify(t->ctree);
+			canonified = jvst_cnode_canonify(simplified);
+			translated = jvst_ir_translate(canonified);
+			xformed = jvst_ir_linearize(translated);
+
+			jvst_ir_liveness(xformed);
+			ret = ir_trees_equal(fname, xformed, expected);
+			jvst_ir_free_liveness(xformed);
+
+			return ret;
+		}
 	}
 
 	assert(expected != NULL);

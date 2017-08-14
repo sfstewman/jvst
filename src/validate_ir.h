@@ -139,6 +139,9 @@ struct jvst_ir_program {
 	struct jvst_ir_stmt *frames;
 };
 
+/* opaque struct for liveness analysis */
+struct jvst_ir_live;
+
 struct jvst_ir_frame {
 	struct jvst_ir_stmt *split_next;
 
@@ -165,6 +168,8 @@ struct jvst_ir_frame {
 	size_t nslots;
 	size_t spill_off;
 	size_t nspill;
+	size_t nblocks;
+	size_t nstmts;
 };
 
 struct jvst_ir_stmt {
@@ -175,6 +180,9 @@ struct jvst_ir_stmt {
 
 	// for use in subsequent translation steps
 	void *data;
+
+	// for use in dataflow analysis
+	struct jvst_ir_live *dataflow;
 
 	union {
 		struct {
@@ -367,6 +375,78 @@ struct jvst_ir_expr {
 	} u;
 };
 
+struct jvst_ir_varlist {
+	size_t len;
+	size_t cap;
+	const struct jvst_ir_expr **vars;
+};
+
+void
+jvst_ir_varlist_add(struct jvst_ir_varlist *vl, const struct jvst_ir_expr *var);
+
+bool
+jvst_ir_varlist_has(const struct jvst_ir_varlist *vl, const struct jvst_ir_expr *var);
+
+static inline void
+jvst_ir_varlist_add_uniq(struct jvst_ir_varlist *vl, const struct jvst_ir_expr *var)
+{
+	if (!jvst_ir_varlist_has(vl, var)) {
+		jvst_ir_varlist_add(vl, var);
+	}
+}
+
+void
+jvst_ir_varlist_union(struct jvst_ir_varlist *a, const struct jvst_ir_varlist *b);
+
+void
+jvst_ir_varlist_sub(struct jvst_ir_varlist *dst, const struct jvst_ir_varlist *a, const struct jvst_ir_varlist *b);
+
+static inline void
+jvst_ir_varlist_set(struct jvst_ir_varlist *dst, const struct jvst_ir_varlist *src)
+{
+	size_t i,n;
+
+	dst->len = 0;
+	n = src->len;
+	for (i=0; i < n; i++) {
+		jvst_ir_varlist_add(dst, src->vars[i]);
+	}
+}
+
+bool
+jvst_ir_varlist_equal(struct jvst_ir_varlist *a, struct jvst_ir_varlist *b);
+
+void
+jvst_ir_varlist_free(struct jvst_ir_varlist *vl);
+
+struct jvst_ir_stmtlist {
+	size_t len;
+	size_t cap;
+	const struct jvst_ir_stmt **stmts;
+};
+
+void
+jvst_ir_stmtlist_add(struct jvst_ir_stmtlist *lv, const struct jvst_ir_stmt *stmt);
+
+void
+jvst_ir_stmtlist_add_uniq(struct jvst_ir_stmtlist *lv, const struct jvst_ir_stmt *stmt);
+
+bool
+jvst_ir_stmtlist_has(const struct jvst_ir_stmtlist *lv, const struct jvst_ir_stmt *stmt);
+
+void
+jvst_ir_stmtlist_free(struct jvst_ir_stmtlist *lv);
+
+struct jvst_ir_live {
+	struct jvst_ir_stmtlist pred;
+	struct jvst_ir_stmtlist succ;
+
+	struct jvst_ir_varlist kill;
+	struct jvst_ir_varlist gen;
+	struct jvst_ir_varlist in;
+	struct jvst_ir_varlist out;
+};
+
 struct jvst_cnode;
 
 struct jvst_ir_stmt *
@@ -383,13 +463,16 @@ jvst_ir_linearize(struct jvst_ir_stmt *ir);
  * in the stack frame.
  */
 void
-jvst_ir_make_frame_info(struct jvst_ir_stmt *ir);
+jvst_ir_make_frame_info(struct jvst_ir_stmt *prog);
 
-/* Performs dataflow analysis to determine liveness of temporaries and
- * slots.
+/* Performs liveness analysis on variables (temporaries, slots, etc.).
  */
-struct jvst_ir_stmt *
-jvst_ir_liveness(struct jvst_ir_stmt *ir);
+void
+jvst_ir_liveness(struct jvst_ir_stmt *prog);
+
+/* Frees memory used by liveness analysis */
+void
+jvst_ir_free_liveness(struct jvst_ir_stmt *ir);
 
 /* Flattens IR, eliminates unnecessary branches, and numbers remaining
  * instructions

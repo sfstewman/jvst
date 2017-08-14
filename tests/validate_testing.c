@@ -42,6 +42,8 @@ static struct jvst_ir_stmt ar_ir_stmts[NUM_TEST_THINGS];
 static struct jvst_ir_expr ar_ir_exprs[NUM_TEST_THINGS];
 static struct jvst_ir_mcase ar_ir_mcases[NUM_TEST_THINGS];
 
+static struct jvst_ir_live ar_ir_liveanno[NUM_TEST_THINGS];
+
 static struct jvst_op_program ar_op_prog[NUM_TEST_THINGS];
 static struct jvst_op_proc ar_op_proc[NUM_TEST_THINGS];
 static struct jvst_op_instr ar_op_instr[NUM_TEST_THINGS];
@@ -663,9 +665,21 @@ newir_expr(struct arena_info *A, enum jvst_ir_expr_type type)
 }
 
 struct jvst_ir_stmt v_frameindex;
+struct jvst_ir_stmt v_liveanalysis;
 struct jvst_ir_stmt v_splitlist;
+struct jvst_ir_stmt v_live_kill;
+struct jvst_ir_stmt v_live_gen;
+struct jvst_ir_stmt v_live_in;
+struct jvst_ir_stmt v_live_out;
+
 const struct jvst_ir_stmt *const frameindex = &v_frameindex;
+const struct jvst_ir_stmt *const liveanalysis = & v_liveanalysis;
 const struct jvst_ir_stmt *const splitlist = &v_splitlist;
+
+const struct jvst_ir_stmt *const live_kill = &v_live_kill;
+const struct jvst_ir_stmt *const live_gen = &v_live_gen;
+const struct jvst_ir_stmt *const live_in  = &v_live_in;
+const struct jvst_ir_stmt *const live_out = &v_live_out;
 
 struct jvst_ir_stmt *
 newir_stmt(struct arena_info *A, enum jvst_ir_stmt_type type)
@@ -697,25 +711,114 @@ newir_invalid(struct arena_info *A, int code, const char *msg)
 	return stmt;
 }
 
-static void ir_stmt_list(struct jvst_ir_stmt **spp, va_list args)
+struct jvst_ir_live *
+newir_liveanno(struct arena_info *A) {
+	struct jvst_ir_live *lv;
+	size_t i, max;
+	va_list args;
+
+	i   = A->nlive++;
+	max = ARRAYLEN(ar_ir_liveanno);
+	if (A->nlive >= max) {
+		fprintf(stderr, "too many IR live analysis nodes: %zu max\n", max);
+		abort();
+	}
+
+	lv = &ar_ir_liveanno[i];
+	memset(lv, 0, sizeof *lv);
+
+	return lv;
+}
+
+static void add_live_anno(struct arena_info *A, struct jvst_ir_stmt *stmt, const struct jvst_ir_stmt *const anno, va_list args)
 {
-	struct jvst_ir_stmt *stmt;
+	int i,n;
+	size_t nvar;
+	struct jvst_ir_live *lv;
+	struct jvst_ir_varlist *vl;
+
+	if (stmt->dataflow == NULL) {
+		stmt->dataflow = newir_liveanno(A);
+	}
+
+	if (anno == live_gen) {
+		vl = &stmt->dataflow->gen;
+	} else if (anno == live_kill) {
+		vl = &stmt->dataflow->kill;
+	} else if (anno == live_in) {
+		vl = &stmt->dataflow->in;
+	} else if (anno == live_out) {
+		vl = &stmt->dataflow->out;
+	} else {
+		fprintf(stderr, "%s:%d (%s) unknown live analysis annotation\n",
+			__FILE__, __LINE__, __func__);
+		abort();
+	}
+
+	n = va_arg(args, int);
+	for (i=0; i < n; i++) {
+		struct jvst_ir_expr *expr;
+
+		expr = va_arg(args, struct jvst_ir_expr *);
+		jvst_ir_varlist_add(vl, expr);
+	}
+}
+
+void
+cleanup_liveanno(struct arena_info *A)
+{
+	size_t i,n;
+
+	n = A->nlive;
+	for(i = 0; i < n; i++) {
+		jvst_ir_varlist_free(&ar_ir_liveanno[i].kill);
+		jvst_ir_varlist_free(&ar_ir_liveanno[i].gen);
+		jvst_ir_varlist_free(&ar_ir_liveanno[i].in);
+		jvst_ir_varlist_free(&ar_ir_liveanno[i].out);
+	}
+}
+
+static void ir_stmt_list(struct arena_info *A, struct jvst_ir_stmt **spp, va_list args)
+{
+	struct jvst_ir_stmt *stmt, *last;
 
 	*spp = NULL;
+	last = NULL;
 	stmt = va_arg(args, struct jvst_ir_stmt *);
 	for(; stmt != NULL; stmt = va_arg(args, struct jvst_ir_stmt *)) {
+		if (stmt == live_kill || stmt == live_gen || stmt == live_in || stmt == live_out) {
+			va_list args2;
+			int i,n;
+
+			// have to make a copy of args to pass it to
+			// add_live_anno.  first get the number of expressions.
+			va_copy(args2, args);
+			add_live_anno(A, last, stmt, args2);
+			va_end(args2);
+
+			// now eat the expression arguments in args
+			n = va_arg(args, int);
+			for (i=0; i < n; i++) {
+				va_arg(args, struct jvst_ir_expr *);
+			}
+			continue;
+		}
+
 		*spp = stmt;
 		spp = &(*spp)->next;
+		last = stmt;
 	}
 }
 
 struct jvst_ir_stmt *
 newir_frame(struct arena_info *A, ...)
 {
-	struct jvst_ir_stmt *fr, **spp, **cpp, **mpp, **bvpp, **slpp;
+	struct jvst_ir_stmt *fr, *stmt, *last, **spp, **cpp, **mpp, **bvpp, **slpp;
+	struct jvst_ir_stmt *save_frame;
 	va_list args;
 
 	fr = newir_stmt(A,JVST_IR_STMT_FRAME);
+
 	va_start(args, A);
 	spp = &fr->u.frame.stmts;
 	*spp = NULL;
@@ -725,9 +828,9 @@ newir_frame(struct arena_info *A, ...)
 	bvpp = &fr->u.frame.bitvecs;
 	slpp = &fr->u.frame.splits;
 
+	stmt = NULL;
+	last = NULL;
 	for (;;) {
-		struct jvst_ir_stmt *stmt;
-
 		stmt = va_arg(args, struct jvst_ir_stmt *);
 		if (stmt == NULL) {
 			goto end_loop;
@@ -735,6 +838,24 @@ newir_frame(struct arena_info *A, ...)
 
 		if (stmt == frameindex) {
 			fr->u.frame.frame_ind = (size_t)va_arg(args, int);
+			continue;
+		}
+
+		if (stmt == live_kill || stmt == live_gen || stmt == live_in || stmt == live_out) {
+			va_list args2;
+			int i,n;
+
+			// have to make a copy of args to pass it to
+			// add_live_anno.  first get the number of expressions.
+			va_copy(args2, args);
+			add_live_anno(A, last, stmt, args2);
+			va_end(args2);
+
+			// now eat the expression arguments in args
+			n = va_arg(args, int);
+			for (i=0; i < n; i++) {
+				va_arg(args, struct jvst_ir_expr *);
+			}
 			continue;
 		}
 
@@ -766,6 +887,7 @@ newir_frame(struct arena_info *A, ...)
 		default:
 			*spp = stmt;
 			spp = &stmt->next;
+			last = stmt;
 			break;
 		}
 	}
@@ -774,6 +896,7 @@ end_loop:
 	va_end(args);
 
 	assert(fr->u.frame.stmts != NULL);
+
 	return fr;
 }
 
@@ -813,7 +936,7 @@ newir_seq(struct arena_info *A, ...)
 
 	seq = newir_stmt(A,JVST_IR_STMT_SEQ);
 	va_start(args, A);
-	ir_stmt_list(&seq->u.stmt_list, args);
+	ir_stmt_list(A, &seq->u.stmt_list, args);
 	va_end(args);
 
 	return seq;
@@ -830,7 +953,7 @@ newir_block(struct arena_info *A, size_t lind, const char *prefix, ...)
 	blk->u.block.prefix = prefix;
 
 	va_start(args, prefix);
-	ir_stmt_list(&blk->u.block.stmts, args);
+	ir_stmt_list(A, &blk->u.block.stmts, args);
 	va_end(args);
 
 	return blk;
@@ -885,7 +1008,7 @@ newir_loop(struct arena_info *A, const char *loopname, size_t ind, ...)
 	loop->u.loop.name = loopname;
 	loop->u.loop.ind  = ind;
 	va_start(args, ind);
-	ir_stmt_list(&loop->u.loop.stmts, args);
+	ir_stmt_list(A, &loop->u.loop.stmts, args);
 	va_end(args);
 
 	return loop;

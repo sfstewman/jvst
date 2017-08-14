@@ -704,6 +704,73 @@ ir_mcase_new(size_t which, struct jvst_ir_stmt *stmt)
 	return mcase;
 }
 
+
+/* live analys pool */
+
+union ir_live_item {
+	struct jvst_ir_live item;
+	union ir_live_item *next;
+};
+
+struct jvst_ir_live_pool {
+	struct jvst_ir_live_pool *next;
+	union ir_live_item items[JVST_IR_EXPR_CHUNKSIZE];
+	unsigned char marks[STMT_MARKSIZE];
+};
+
+static struct {
+	struct jvst_ir_live_pool *head;
+	size_t top;
+	union ir_live_item *freelist;
+} live_pool;
+
+static struct jvst_ir_live *
+ir_live_alloc(void)
+{
+	struct jvst_ir_live *item;
+	struct jvst_ir_live_pool *pool;
+
+	if (live_pool.head == NULL) {
+		goto new_pool;
+	}
+
+	if (live_pool.top < ARRAYLEN(live_pool.head->items)) {
+		item = &live_pool.head->items[live_pool.top++].item;
+		memset(item, 0, sizeof *item);
+		return item;
+	}
+
+	if (live_pool.freelist != NULL) {
+		item = &live_pool.freelist->item;
+		live_pool.freelist = live_pool.freelist->next;
+		memset(item, 0, sizeof *item);
+		return item;
+	}
+
+	// XXX - add collector here
+
+new_pool:
+	pool = xmalloc(sizeof *pool);
+	memset(pool->items, 0, sizeof pool->items);
+	memset(pool->marks, 0, sizeof pool->marks);
+	pool->next = live_pool.head;
+	live_pool.head = pool;
+	live_pool.top = 1;
+	return &pool->items[0].item;
+}
+
+static struct jvst_ir_live *
+ir_live_new(void)
+{
+	struct jvst_ir_live *live;
+
+	live = ir_live_alloc();
+	return live;
+}
+
+
+/** Non-pool stuff **/
+
 const char *
 jvst_ir_stmt_type_name(enum jvst_ir_stmt_type type)
 {
@@ -1093,10 +1160,51 @@ jvst_ir_dump_expr(struct sbuf *buf, const struct jvst_ir_expr *expr, int indent)
 void
 jvst_cnode_matchset_dump(struct jvst_cnode_matchset *ms, struct sbuf *buf, int indent);
 
+static void ir_dump_varlist(struct sbuf *buf, const char *name, struct jvst_ir_varlist *vl, int indent)
+{
+	size_t i,n;
+	if (vl == NULL) {
+		return;
+	}
+
+	sbuf_indent(buf, indent);
+	sbuf_snprintf(buf, "%-9s=[ ", name);
+	for(n=vl->len, i=0; i < n; i++) {
+		jvst_ir_dump_expr(buf, vl->vars[i], 0);
+		if (i < n-1) {
+			sbuf_snprintf(buf, ", ");
+		} else {
+			sbuf_snprintf(buf, " ");
+		}
+	}
+	sbuf_snprintf(buf, "]\n");
+}
+
+static void
+ir_dump_dataflow(struct sbuf *buf, struct jvst_ir_stmt *ir, int indent)
+{
+	struct jvst_ir_live *df;
+	struct jvst_ir_varlist *vl;
+
+	assert(ir != NULL);
+
+	df = ir->dataflow;
+	assert(df != NULL);
+
+	ir_dump_varlist(buf, "live_gen", &df->gen, indent);
+	ir_dump_varlist(buf, "live_kill", &df->kill, indent);
+	ir_dump_varlist(buf, "live_in ", &df->in, indent);
+	ir_dump_varlist(buf, "live_out", &df->out, indent);
+}
+
 void
 jvst_ir_dump_inner(struct sbuf *buf, struct jvst_ir_stmt *ir, int indent)
 {
 	assert(ir != NULL);
+
+	if (ir->dataflow != NULL) {
+		ir_dump_dataflow(buf, ir, indent);
+	}
 
 	sbuf_indent(buf, indent);
 	switch (ir->type) {
@@ -4533,8 +4641,8 @@ jvst_ir_print(struct jvst_ir_stmt *stmt)
 static void
 ir_frame_make_info(struct jvst_ir_stmt *fr)
 {
-	size_t off, nslots;
-	struct jvst_ir_stmt *bv, *c;
+	size_t off, nslots, nblocks, nstmts;
+	struct jvst_ir_stmt *bv, *c, *blk;
 
 	assert(fr->type == JVST_IR_STMT_FRAME);
 
@@ -4563,25 +4671,659 @@ ir_frame_make_info(struct jvst_ir_stmt *fr)
 		nslots += ns;
 	}
 
+	nstmts = 0;
+	for (nblocks=0, blk = fr->u.frame.stmts; blk != NULL; nblocks++, blk=blk->next) {
+		struct jvst_ir_stmt *stmt;
+
+		assert(blk->type == JVST_IR_STMT_BLOCK);
+
+		for(stmt = blk->u.block.stmts; stmt != NULL; nstmts++, stmt = stmt->next) {
+			continue;
+		}
+	}
+
 	fr->u.frame.nslots = nslots;
 	fr->u.frame.spill_off = off;
+	fr->u.frame.nstmts = nstmts;
+	fr->u.frame.nblocks = nblocks;
 }
 
 void
-jvst_ir_make_frame_info(struct jvst_ir_stmt *ir)
+jvst_ir_make_frame_info(struct jvst_ir_stmt *prog)
 {
 	struct jvst_ir_stmt *fr;
 
-	assert(ir->type == JVST_IR_STMT_PROGRAM);
+	assert(prog->type == JVST_IR_STMT_PROGRAM);
 
-	for (fr = ir->u.program.frames; fr != NULL; fr = fr->next) {
+	for (fr = prog->u.program.frames; fr != NULL; fr = fr->next) {
 		assert(fr->type == JVST_IR_STMT_FRAME);
 		ir_frame_make_info(fr);
 	}
 }
 
-struct jvst_ir_stmt *
-jvst_ir_liveness(struct jvst_ir_stmt *ir);
+enum {
+	TOKEN_STATE_VAR = 0,
+	NUM_IMPLICIT_VARS
+};
+
+static inline void *
+list_resize(size_t *capp, size_t itemsz, void *elts)
+{
+	size_t newsz = *capp;
+
+	if (newsz < 4) {
+		newsz = 4;
+	} else if (newsz < 1024) {
+		newsz *= 2;
+	} else {
+		newsz += newsz/4;
+	}
+
+	assert(newsz > *capp + 1);
+
+	*capp = newsz;
+	return xrealloc(elts, newsz * itemsz);
+}
+
+static void varlist_resize(struct jvst_ir_varlist *vl)
+{
+	vl->vars = list_resize(&vl->cap, sizeof vl->vars[0], vl->vars);
+}
+
+void
+jvst_ir_varlist_add(struct jvst_ir_varlist *vl, const struct jvst_ir_expr *var)
+{
+	assert(vl != NULL);
+	assert(var != NULL);
+	if (vl->len >= vl->cap) {
+		varlist_resize(vl);
+	}
+
+	vl->vars[vl->len++] = var;
+}
+
+static int varlist_cmp(const void *a, const void *b)
+{
+	const struct jvst_ir_expr *va = a, *vb = b;
+
+	return va-vb;
+}
+
+static void
+varlist_sort(struct jvst_ir_varlist *vl)
+{
+	qsort(vl->vars, vl->len, sizeof vl->vars[0], varlist_cmp);
+}
+
+bool
+jvst_ir_varlist_equal(struct jvst_ir_varlist *a, struct jvst_ir_varlist *b)
+{
+	size_t i,n;
+	if (a->len != b->len) {
+		return false;
+	}
+
+	varlist_sort(a);
+	varlist_sort(b);
+
+	for (n=a->len, i=0; i < n; i++) {
+		if (a->vars[i] != b->vars[i]) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void
+jvst_ir_varlist_free(struct jvst_ir_varlist *vl)
+{
+	free(vl->vars);
+	vl->len = 0;
+	vl->cap = 0;
+}
+
+static void
+stmtlist_resize(struct jvst_ir_stmtlist *lv)
+{
+	lv->stmts = list_resize(&lv->cap, sizeof lv->stmts[0], lv->stmts);
+}
+
+void
+jvst_ir_stmtlist_add_uniq(struct jvst_ir_stmtlist *lv, const struct jvst_ir_stmt *stmt)
+{
+	if (!jvst_ir_stmtlist_has(lv,stmt)) {
+		jvst_ir_stmtlist_add(lv,stmt);
+	}
+}
+
+void
+jvst_ir_stmtlist_add(struct jvst_ir_stmtlist *lv, const struct jvst_ir_stmt *stmt)
+{
+	assert(lv != NULL);
+	assert(stmt != NULL);
+
+	if (lv->len >= lv->cap) {
+		stmtlist_resize(lv);
+	}
+
+	lv->stmts[lv->len++] = stmt;
+}
+
+bool
+jvst_ir_stmtlist_has(const struct jvst_ir_stmtlist *lv, const struct jvst_ir_stmt *stmt)
+{
+	size_t i,n;
+
+	n = lv->len;
+	for (i=0; i < n; i++) {
+		if (lv->stmts[i] == stmt) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static bool
+vars_eq(const struct jvst_ir_expr *v1, const struct jvst_ir_expr *v2)
+{
+	if (v1 == v2) {
+		return true;
+	}
+
+	if (v1->type != v2->type) {
+		return false;
+	}
+
+	switch (v1->type) {
+	case JVST_IR_EXPR_ITEMP:
+	case JVST_IR_EXPR_FTEMP:
+		return v1->u.temp.ind == v2->u.temp.ind;
+
+	case JVST_IR_EXPR_SLOT:
+		return v1->u.slot.ind == v2->u.slot.ind;
+
+	case JVST_IR_EXPR_TOK_TYPE:
+		return true;
+
+	default:
+		fprintf(stderr, "%s:%d (%s) unexpected vars_eq argument (type %s)\n",
+			__FILE__, __LINE__, __func__, jvst_ir_expr_type_name(v1->type));
+		abort();
+	}
+}
+
+bool
+jvst_ir_varlist_has(const struct jvst_ir_varlist *vl, const struct jvst_ir_expr *var)
+{
+	size_t i,n;
+	n = vl->len;
+	for (i=0; i < n; i++) {
+		if (vars_eq(vl->vars[i], var)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+void
+jvst_ir_varlist_union(struct jvst_ir_varlist *a, const struct jvst_ir_varlist *b)
+{
+	size_t i,n;
+
+	n = b->len;
+	for (i=0; i < n; i++) {
+		if (!jvst_ir_varlist_has(a,b->vars[i])) {
+			jvst_ir_varlist_add(a,b->vars[i]);
+		}
+	}
+}
+
+void
+jvst_ir_varlist_sub(struct jvst_ir_varlist *dst, const struct jvst_ir_varlist *a, const struct jvst_ir_varlist *b)
+{
+	size_t i,n;
+	n = a->len;
+	for (i=0; i < n; i++) {
+		if (!jvst_ir_varlist_has(b,a->vars[i])) {
+			jvst_ir_varlist_add(dst,a->vars[i]);
+		}
+	}
+}
+
+void
+jvst_ir_stmtlist_free(struct jvst_ir_stmtlist *lv)
+{
+	free(lv->stmts);
+	lv->len = 0;
+	lv->cap = 0;
+}
+
+static const struct jvst_ir_expr v_tokvar = { .type = JVST_IR_EXPR_TOK_TYPE };
+static const struct jvst_ir_expr *const tokvar = &v_tokvar;
+
+static void
+collect_variables_expr(struct jvst_ir_expr *expr, struct jvst_ir_varlist *kill, struct jvst_ir_varlist *gen)
+{
+	(void)kill;
+
+	switch(expr->type) {
+	case JVST_IR_EXPR_NONE:
+	case JVST_IR_EXPR_SPLIT:
+	case JVST_IR_EXPR_NUM:
+	case JVST_IR_EXPR_INT:
+	case JVST_IR_EXPR_SIZE:
+	case JVST_IR_EXPR_BOOL:
+		return;
+
+	case JVST_IR_EXPR_TOK_TYPE:
+	case JVST_IR_EXPR_TOK_NUM:
+	case JVST_IR_EXPR_TOK_COMPLETE:
+	case JVST_IR_EXPR_TOK_LEN:
+	case JVST_IR_EXPR_ISTOK:
+	case JVST_IR_EXPR_ISINT:
+		jvst_ir_varlist_add_uniq(gen, tokvar);
+		return;
+
+	case JVST_IR_EXPR_COUNT:
+
+	case JVST_IR_EXPR_BTEST:
+	case JVST_IR_EXPR_BTESTALL:
+	case JVST_IR_EXPR_BTESTANY:
+	case JVST_IR_EXPR_BTESTONE:
+	case JVST_IR_EXPR_BCOUNT:
+	case JVST_IR_EXPR_MATCH:
+
+	case JVST_IR_EXPR_NE:
+	case JVST_IR_EXPR_LT:
+	case JVST_IR_EXPR_LE:
+	case JVST_IR_EXPR_EQ:
+	case JVST_IR_EXPR_GE:
+	case JVST_IR_EXPR_GT:
+
+	case JVST_IR_EXPR_SLOT:
+	case JVST_IR_EXPR_ITEMP:
+	case JVST_IR_EXPR_FTEMP:
+		fprintf(stderr, "%s:%d (%s) live analysis of IR expression %s not yet implemented\n",
+				__FILE__, __LINE__, __func__, 
+				jvst_ir_expr_type_name(expr->type));
+		abort();
+
+	case JVST_IR_EXPR_SEQ:
+	case JVST_IR_EXPR_AND:
+	case JVST_IR_EXPR_OR:
+	case JVST_IR_EXPR_NOT:
+		fprintf(stderr, "%s:%d (%s) IR expression %s should not be encountered after linearizing\n",
+				__FILE__, __LINE__, __func__, 
+				jvst_ir_expr_type_name(expr->type));
+		abort();
+	}
+
+	fprintf(stderr, "%s:%d (%s) unknown IR expression type %d\n",
+			__FILE__, __LINE__, __func__, expr->type);
+	abort();
+}
+
+static void
+collect_variables_stmt(struct jvst_ir_stmt *stmt, struct jvst_ir_varlist *kill, struct jvst_ir_varlist *gen)
+{
+	assert(stmt != NULL);
+	assert(kill != NULL);
+	assert(gen != NULL);
+
+	switch (stmt->type) {
+	case JVST_IR_STMT_NOP:
+	case JVST_IR_STMT_VALID:
+	case JVST_IR_STMT_INVALID:
+	case JVST_IR_STMT_CALL:
+	case JVST_IR_STMT_BRANCH:
+		return;
+
+	case JVST_IR_STMT_TOKEN:
+	case JVST_IR_STMT_CONSUME:
+		jvst_ir_varlist_add(kill, tokvar);
+		return;
+
+	case JVST_IR_STMT_INCR:
+	case JVST_IR_STMT_DECR:
+		{
+			struct jvst_ir_stmt *counter;
+			struct jvst_ir_expr *slot;
+			size_t slotnum;
+			size_t vind;
+
+			counter = stmt->u.counter_op.counter;
+			assert(counter != NULL);
+			assert(counter->type == JVST_IR_STMT_COUNTER);
+
+			slotnum = counter->u.counter.frame_off;
+			vind = slotnum+NUM_IMPLICIT_VARS;
+
+			slot = ir_expr_new(JVST_IR_EXPR_SLOT);
+			slot->u.slot.ind = stmt->u.counter_op.counter->u.counter.frame_off;
+
+			jvst_ir_varlist_add(kill, slot);
+			jvst_ir_varlist_add(gen, slot);
+		}
+		return;
+
+	case JVST_IR_STMT_CBRANCH:
+		collect_variables_expr(stmt->u.cbranch.cond, kill, gen);
+		return;
+
+	case JVST_IR_STMT_MOVE:
+		{
+			collect_variables_expr(stmt->u.move.src, kill, gen);
+			collect_variables_expr(stmt->u.move.dst, kill, gen);
+		}
+		return;
+
+	case JVST_IR_STMT_SPLITVEC:
+	case JVST_IR_STMT_BSET:
+		// from bitvectors
+
+	case JVST_IR_STMT_BCLEAR:
+		fprintf(stderr, "%s:%d (%s) live analysis of IR statement %s not yet implemented\n",
+				__FILE__, __LINE__, __func__, 
+				jvst_ir_stmt_type_name(stmt->type));
+		abort();
+
+	case JVST_IR_STMT_BLOCK:
+	case JVST_IR_STMT_FRAME:
+	case JVST_IR_STMT_PROGRAM:
+	case JVST_IR_STMT_COUNTER:
+	case JVST_IR_STMT_MATCHER:
+	case JVST_IR_STMT_BITVECTOR:
+	case JVST_IR_STMT_SPLITLIST:
+		fprintf(stderr, "%s:%d (%s) IR statement %s encountered during instruction live analysis\n",
+				__FILE__, __LINE__, __func__, 
+				jvst_ir_stmt_type_name(stmt->type));
+		abort();
+
+	case JVST_IR_STMT_SEQ:
+	case JVST_IR_STMT_LOOP:
+	case JVST_IR_STMT_BREAK:
+	case JVST_IR_STMT_MATCH:
+	case JVST_IR_STMT_IF:
+		fprintf(stderr, "%s:%d (%s) IR statement %s should not be encountered after linearizing\n",
+				__FILE__, __LINE__, __func__, 
+				jvst_ir_stmt_type_name(stmt->type));
+		abort();
+
+	}
+
+	fprintf(stderr, "%s:%d (%s) unknown IR statement type %d\n",
+			__FILE__, __LINE__, __func__, stmt->type);
+	abort();
+}
+
+void ir_block_live_setup_vars(struct jvst_ir_stmt *blk)
+{
+	struct jvst_ir_stmt *stmt;
+	struct jvst_ir_varlist tmp = { 0 };
+
+	blk->dataflow = ir_live_new();
+	for (stmt = blk->u.block.stmts; stmt != NULL; stmt = stmt->next) {
+		stmt->dataflow = ir_live_new();
+		collect_variables_stmt(stmt, &stmt->dataflow->kill, &stmt->dataflow->gen);
+	}
+
+	// this could be more efficient...
+	for (stmt = blk->u.block.stmts; stmt != NULL; stmt = stmt->next) {
+		tmp.len = 0;
+
+		// equations to combine gen & kill for nodes p,n, where n is the sole
+		// successor to p and p is the sole predecessor of n:
+		//
+		// gen[pn]  = gen[p] U (gen[n] - kill[p])
+		// kill[pn] = kill[p] U kill[n]
+		//
+
+		jvst_ir_varlist_sub(&tmp, &stmt->dataflow->gen, &blk->dataflow->kill);
+		jvst_ir_varlist_union(&tmp, &blk->dataflow->gen);
+		jvst_ir_varlist_set(&blk->dataflow->gen, &tmp);
+
+		jvst_ir_varlist_union(&blk->dataflow->kill, &stmt->dataflow->kill);
+	}
+
+	jvst_ir_varlist_free(&tmp);
+}
+
+void ir_block_live_setup_order(struct jvst_ir_stmt *blk)
+{
+	struct jvst_ir_stmt *stmt;
+
+	assert(blk->dataflow != NULL);
+	for (stmt = blk->u.block.stmts; stmt != NULL; stmt = stmt->next) {
+		assert(stmt->dataflow);
+		if (stmt->next) {
+			jvst_ir_stmtlist_add(&stmt->dataflow->succ, stmt->next);
+			jvst_ir_stmtlist_add(&stmt->next->dataflow->pred, stmt);
+		}
+
+		if (stmt->type == JVST_IR_STMT_BRANCH) {
+			struct jvst_ir_stmt *next_block, *next_stmt;
+
+			next_block = stmt->u.branch;
+			assert(next_block->type == JVST_IR_STMT_BLOCK);
+			assert(next_block->u.block.stmts != NULL);
+
+			next_stmt = next_block->u.block.stmts;
+
+			jvst_ir_stmtlist_add(&stmt->dataflow->succ, next_stmt);
+			jvst_ir_stmtlist_add(&next_stmt->dataflow->pred, stmt);
+
+			jvst_ir_stmtlist_add_uniq(&blk->dataflow->succ, next_block);
+			jvst_ir_stmtlist_add_uniq(&next_block->dataflow->pred, blk);
+		}
+
+		if (stmt->type == JVST_IR_STMT_CBRANCH) {
+			struct jvst_ir_stmt *next_block[2], *next_stmt;
+			int i;
+
+			next_block[0] = stmt->u.cbranch.br_true;
+			next_block[1] = stmt->u.cbranch.br_false;
+
+			for (i=0; i < 2; i++) {
+				assert(next_block[i]->type == JVST_IR_STMT_BLOCK);
+				assert(next_block[i]->u.block.stmts != NULL);
+
+				next_stmt = next_block[i]->u.block.stmts;
+
+				jvst_ir_stmtlist_add(&stmt->dataflow->succ, next_stmt);
+				jvst_ir_stmtlist_add(&next_stmt->dataflow->pred, stmt);
+
+				jvst_ir_stmtlist_add_uniq(&blk->dataflow->succ, next_block[i]);
+				jvst_ir_stmtlist_add_uniq(&next_block[i]->dataflow->pred, blk);
+			}
+
+		}
+	}
+}
+
+static void
+ir_live_intrablock(struct jvst_ir_stmt *b)
+{
+	const struct jvst_ir_stmt *last, *stmt;
+
+	last = b->u.block.stmts;
+	if (last == NULL) {
+		return;
+	}
+
+	for (; last->next != NULL; last = last->next) {
+		continue;
+	}
+
+	jvst_ir_varlist_set(&last->dataflow->out, &b->dataflow->out);
+
+	stmt = last;
+	for (;;) {
+		assert(stmt->dataflow->in.len == 0);
+		jvst_ir_varlist_sub(&stmt->dataflow->in, &stmt->dataflow->out, &stmt->dataflow->kill);
+		jvst_ir_varlist_union(&stmt->dataflow->in, &stmt->dataflow->gen);
+
+		if (stmt == b->u.block.stmts) {
+			break;
+		}
+
+		last = stmt;
+		assert(last->dataflow->pred.len == 1);
+		stmt = last->dataflow->pred.stmts[0];
+		jvst_ir_varlist_set(&stmt->dataflow->out, &last->dataflow->in);
+	}
+}
+
+void ir_frame_live_analysis(struct jvst_ir_stmt *fr)
+{
+	struct jvst_ir_stmt *b;
+	const struct jvst_ir_stmt **work, **blist;
+	struct jvst_ir_varlist tmp = { 0 };
+	size_t nblock, i;
+
+	assert(fr->type == JVST_IR_STMT_FRAME);
+
+	nblock = 0;
+	for (b=fr->u.frame.blocks; b != NULL; b = b->next) {
+		ir_block_live_setup_vars(b);
+		nblock++;
+	}
+
+	work = xmalloc(nblock * sizeof *b);
+	blist = xmalloc(nblock * sizeof *b);
+
+	for (i=0, b=fr->u.frame.blocks; b != NULL; i++, b = b->next) {
+		ir_block_live_setup_order(b);
+
+		blist[i] = b;
+		work[i] = NULL;
+	}
+
+	// initialize the work list
+	for (i = 0; i < nblock; i++) {
+		work[i] = blist[nblock-1-i];
+	}
+
+	for(;;) {
+		const struct jvst_ir_stmt *blk;
+		size_t si, sn;
+
+		blk = NULL;
+		for (i=0; i < nblock; i++) {
+			if (work[i] != NULL) {
+				blk = work[i];
+				work[i] = NULL;
+				break;
+			}
+		}
+
+		// nothing to do!
+		if (blk == NULL) {
+			break;
+		}
+
+		blk->dataflow->out.len = 0;
+
+		sn = blk->dataflow->succ.len;
+		for (si=0; si < sn; si++) {
+			const struct jvst_ir_stmt *bsucc;
+
+			bsucc = blk->dataflow->succ.stmts[si];
+			jvst_ir_varlist_union(&blk->dataflow->out, &bsucc->dataflow->in);
+		}
+
+		tmp.len = 0;
+		jvst_ir_varlist_sub(&tmp, &blk->dataflow->out, &blk->dataflow->kill);
+		jvst_ir_varlist_union(&tmp, &blk->dataflow->gen);
+
+		{
+			char cbuf[256];
+			struct sbuf buf = { 
+				.buf = cbuf, .cap = sizeof cbuf, .len = 0, .np = 0,
+			};
+
+			jvst_ir_print((struct jvst_ir_stmt *)blk);
+			ir_dump_varlist(&buf, "live_out", &blk->dataflow->out, 0);
+			ir_dump_varlist(&buf, "live_in", &tmp, 0);
+			fprintf(stderr, "%s\n", buf.buf);
+		}
+
+		if (!jvst_ir_varlist_equal(&tmp, &blk->dataflow->in)) {
+			size_t pi, pn;
+
+			jvst_ir_varlist_set(&blk->dataflow->in, &tmp);
+			pn = blk->dataflow->pred.len;
+			for (pi=0; pi < pn; pi++) {
+				const struct jvst_ir_stmt *bpred;
+				size_t wi, lo;
+
+				bpred = blk->dataflow->pred.stmts[pi];
+				for (lo = nblock, wi = nblock; wi > 0; wi--) {
+					if (work[wi-1] == NULL) {
+						lo = wi-1;
+					} else if (work[wi-1] == bpred) {
+						lo = wi-1;
+						break;
+					}
+				}
+
+				assert(lo >= 0 && lo < nblock);
+
+				if (work[lo] == NULL) {
+					work[lo] = bpred;
+				}
+			}
+		}
+
+		{
+			char cbuf[256];
+			struct sbuf buf = { 
+				.buf = cbuf, .cap = sizeof cbuf, .len = 0, .np = 0,
+			};
+
+			jvst_ir_print((struct jvst_ir_stmt *)blk);
+			ir_dump_dataflow(&buf, (struct jvst_ir_stmt *)blk, 0);
+			fprintf(stderr, "%s\n", buf.buf);
+		}
+
+	}
+
+	// now that block live analysis is done, compute live analysis for statements
+	// within the block
+	for (i=0, b=fr->u.frame.blocks; b != NULL; i++, b = b->next) {
+		ir_live_intrablock(b);
+	}
+
+	free(blist);
+	free(work);
+	jvst_ir_varlist_free(&tmp);
+}
+
+/* Performs liveness analysis on variables (temporaries, slots, etc.).
+ */
+void
+jvst_ir_liveness(struct jvst_ir_stmt *prog)
+{
+	struct jvst_ir_stmt *fr;
+
+	assert(prog->type == JVST_IR_STMT_PROGRAM);
+
+	jvst_ir_make_frame_info(prog);
+
+	for (fr = prog->u.program.frames; fr != NULL; fr = fr->next) {
+		assert(fr->type == JVST_IR_STMT_FRAME);
+		ir_frame_live_analysis(fr);
+	}
+}
+
+/* Frees memory used by liveness analysis */
+void
+jvst_ir_free_liveness(struct jvst_ir_stmt *prog)
+{
+	// XXX - todo
+	(void)prog;
+}
 
 struct jvst_ir_stmt *
 jvst_ir_flatten(struct jvst_ir_stmt *prog)

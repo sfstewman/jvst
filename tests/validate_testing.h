@@ -31,6 +31,7 @@ struct arena_info {
         size_t nstmt;
         size_t nexpr;
 	size_t nmcases;
+	size_t nlive;
 
 	/* OP related */
 	size_t nprog;
@@ -118,6 +119,7 @@ newmatchset(struct arena_info *A, ...);
 
 /* IR-related */
 extern const struct jvst_ir_stmt *const frameindex;
+extern const struct jvst_ir_stmt *const liveanalysis;
 extern const struct jvst_ir_stmt *const splitlist;
 
 struct jvst_ir_stmt *
@@ -128,6 +130,13 @@ newir_expr(struct arena_info *A, enum jvst_ir_expr_type type);
 
 struct jvst_ir_stmt *
 newir_invalid(struct arena_info *A, int code, const char *msg);
+
+struct jvst_ir_live *
+newir_liveanno(struct arena_info *A);
+
+/* cleans up all varlist allocations */
+void
+cleanup_liveanno(struct arena_info *A);
 
 struct jvst_ir_stmt *
 newir_frame(struct arena_info *A, ...);
@@ -238,6 +247,16 @@ newir_eseq(struct arena_info *A, struct jvst_ir_stmt *stmt, struct jvst_ir_expr 
 
 struct jvst_ir_expr *
 newir_ematch(struct arena_info *A, size_t mind);
+
+/* related to live variable analysis */
+
+extern const struct jvst_ir_stmt *const live_kill;
+extern const struct jvst_ir_stmt *const live_gen;
+extern const struct jvst_ir_stmt *const live_in;
+extern const struct jvst_ir_stmt *const live_out;
+
+
+/* op-related */
 
 struct jvst_op_program *
 newop_program(struct arena_info *A, ...);

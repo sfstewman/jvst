@@ -8,6 +8,7 @@ enum ir_test_type {
 	TRANSLATE,
 	LINEARIZE,
 	FLATTEN,
+	LIVE_ANNO,
 };
 
 struct ir_test {
