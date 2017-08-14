@@ -21,6 +21,8 @@
 #include "validate_constraints.h"
 #include "sjp_testing.h"
 
+#define DEBUG_LIVENESS 0
+
 #define STMT_UNIMPLEMENTED(stmt) do { \
 	fprintf(stderr, "%s:%d (%s) IR statement %s not yet implemented\n",	\
 		__FILE__, __LINE__, __func__,					\
@@ -5255,6 +5257,7 @@ void ir_frame_live_analysis(struct jvst_ir_stmt *fr)
 		jvst_ir_varlist_sub(&tmp, &blk->dataflow->out, &blk->dataflow->kill);
 		jvst_ir_varlist_union(&tmp, &blk->dataflow->gen);
 
+#if DEBUG_LIVENESS
 		{
 			char cbuf[256];
 			struct sbuf buf = { 
@@ -5266,6 +5269,7 @@ void ir_frame_live_analysis(struct jvst_ir_stmt *fr)
 			ir_dump_varlist(&buf, "live_in", &tmp, 0);
 			fprintf(stderr, "%s\n", buf.buf);
 		}
+#endif /* DEBUG_LIVENESS */
 
 		if (!jvst_ir_varlist_equal(&tmp, &blk->dataflow->in)) {
 			size_t pi, pn;
@@ -5294,6 +5298,7 @@ void ir_frame_live_analysis(struct jvst_ir_stmt *fr)
 			}
 		}
 
+#if DEBUG_LIVENESS
 		{
 			char cbuf[256];
 			struct sbuf buf = { 
@@ -5304,6 +5309,7 @@ void ir_frame_live_analysis(struct jvst_ir_stmt *fr)
 			ir_dump_dataflow(&buf, (struct jvst_ir_stmt *)blk, 0);
 			fprintf(stderr, "%s\n", buf.buf);
 		}
+#endif /* DEBUG_LIVENESS */
 
 	}
 
