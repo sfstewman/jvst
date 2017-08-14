@@ -4904,10 +4904,8 @@ static const struct jvst_ir_expr v_tokvar = { .type = JVST_IR_EXPR_TOK_TYPE };
 static const struct jvst_ir_expr *const tokvar = &v_tokvar;
 
 static void
-collect_variables_expr(struct jvst_ir_expr *expr, struct jvst_ir_varlist *kill, struct jvst_ir_varlist *gen)
+collect_variables_expr(struct jvst_ir_expr *expr, struct jvst_ir_varlist *vl)
 {
-	(void)kill;
-
 	switch(expr->type) {
 	case JVST_IR_EXPR_NONE:
 	case JVST_IR_EXPR_SPLIT:
@@ -4915,6 +4913,7 @@ collect_variables_expr(struct jvst_ir_expr *expr, struct jvst_ir_varlist *kill, 
 	case JVST_IR_EXPR_INT:
 	case JVST_IR_EXPR_SIZE:
 	case JVST_IR_EXPR_BOOL:
+	case JVST_IR_EXPR_MATCH:
 		return;
 
 	case JVST_IR_EXPR_TOK_TYPE:
@@ -4923,17 +4922,14 @@ collect_variables_expr(struct jvst_ir_expr *expr, struct jvst_ir_varlist *kill, 
 	case JVST_IR_EXPR_TOK_LEN:
 	case JVST_IR_EXPR_ISTOK:
 	case JVST_IR_EXPR_ISINT:
-		jvst_ir_varlist_add_uniq(gen, tokvar);
+		jvst_ir_varlist_add_uniq(vl, tokvar);
 		return;
 
-	case JVST_IR_EXPR_COUNT:
-
-	case JVST_IR_EXPR_BTEST:
-	case JVST_IR_EXPR_BTESTALL:
-	case JVST_IR_EXPR_BTESTANY:
-	case JVST_IR_EXPR_BTESTONE:
-	case JVST_IR_EXPR_BCOUNT:
-	case JVST_IR_EXPR_MATCH:
+	case JVST_IR_EXPR_ITEMP:
+	case JVST_IR_EXPR_FTEMP:
+	case JVST_IR_EXPR_SLOT:
+		jvst_ir_varlist_add_uniq(vl, expr);
+		return;
 
 	case JVST_IR_EXPR_NE:
 	case JVST_IR_EXPR_LT:
@@ -4941,10 +4937,32 @@ collect_variables_expr(struct jvst_ir_expr *expr, struct jvst_ir_varlist *kill, 
 	case JVST_IR_EXPR_EQ:
 	case JVST_IR_EXPR_GE:
 	case JVST_IR_EXPR_GT:
+		collect_variables_expr(expr->u.cmp.left,  vl);
+		collect_variables_expr(expr->u.cmp.right, vl);
+		return;
 
-	case JVST_IR_EXPR_SLOT:
-	case JVST_IR_EXPR_ITEMP:
-	case JVST_IR_EXPR_FTEMP:
+	case JVST_IR_EXPR_COUNT:
+		{
+			struct jvst_ir_stmt *counter;
+			struct jvst_ir_expr *slot;
+
+			counter = expr->u.count.counter;
+			assert(counter != NULL);
+			assert(counter->type == JVST_IR_STMT_COUNTER);
+
+			slot = ir_expr_new(JVST_IR_EXPR_SLOT);
+			slot->u.slot.ind = counter->u.counter.frame_off;
+
+			jvst_ir_varlist_add_uniq(vl, slot);
+		}
+		return;
+
+	case JVST_IR_EXPR_BTEST:
+	case JVST_IR_EXPR_BTESTALL:
+	case JVST_IR_EXPR_BTESTANY:
+	case JVST_IR_EXPR_BTESTONE:
+	case JVST_IR_EXPR_BCOUNT:
+
 		fprintf(stderr, "%s:%d (%s) live analysis of IR expression %s not yet implemented\n",
 				__FILE__, __LINE__, __func__, 
 				jvst_ir_expr_type_name(expr->type));
@@ -5009,13 +5027,13 @@ collect_variables_stmt(struct jvst_ir_stmt *stmt, struct jvst_ir_varlist *kill, 
 		return;
 
 	case JVST_IR_STMT_CBRANCH:
-		collect_variables_expr(stmt->u.cbranch.cond, kill, gen);
+		collect_variables_expr(stmt->u.cbranch.cond, gen);
 		return;
 
 	case JVST_IR_STMT_MOVE:
 		{
-			collect_variables_expr(stmt->u.move.src, kill, gen);
-			collect_variables_expr(stmt->u.move.dst, kill, gen);
+			collect_variables_expr(stmt->u.move.src, gen);
+			collect_variables_expr(stmt->u.move.dst, kill);
 		}
 		return;
 
