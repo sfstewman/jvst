@@ -1270,110 +1270,220 @@ void test_ir_required(void)
 
           newir_block(&A, 0, "entry",
             newir_stmt(&A, JVST_IR_STMT_TOKEN),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             newir_cbranch(&A, newir_istok(&A, SJP_OBJECT_BEG),
               4, "loop",
               20, "false"
             ),
+            live_gen, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,  2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out, 2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
 
           newir_block(&A, 20, "false",
             newir_cbranch(&A, newir_istok(&A, SJP_OBJECT_END),
               23, "invalid_1",
               24, "false"
             ),
+            live_gen, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             NULL
           ),
+          live_gen, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_out, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
 
           newir_block(&A, 24, "false",
             newir_cbranch(&A, newir_istok(&A, SJP_ARRAY_END),
               23, "invalid_1",
               17, "valid"
             ),
+            live_gen, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out, 0,
+
             NULL
           ),
+          live_gen, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_out, 0,
 
           newir_block(&A, 17, "valid",
             newir_stmt(&A, JVST_IR_STMT_VALID),
+            live_out, 0,
             NULL
           ),
+          live_out, 0,
 
           newir_block(&A, 4, "loop",
             newir_stmt(&A, JVST_IR_STMT_TOKEN),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             newir_cbranch(&A, newir_istok(&A, SJP_OBJECT_END),
               3, "loop_end",
               7, "false"
             ),
+            live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 7, "false",
             newir_move(&A, newir_itemp(&A, 0), newir_ematch(&A, 0)),
+            live_kill, 1, newir_itemp(&A, 0),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
+
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 0)),
               9, "M",
               10, "M_next"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+            live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
+
             NULL
           ),
+          live_kill, 1, newir_itemp(&A, 0),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
 
           newir_block(&A, 10, "M_next",
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 1)),
               11, "M",
               12, "M_next"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+            live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
+
             NULL
           ),
+          live_gen,  1, newir_itemp(&A, 0),
+          live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+          live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
 
           newir_block(&A, 12, "M_next",
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 2)),
               13, "M",
               14, "invalid_9"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_gen,  1, newir_itemp(&A, 0),
+          live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 14, "invalid_9",
             newir_invalid(&A, JVST_INVALID_MATCH_CASE, "invalid match case (internal error)"),
+            live_out, 0,
             NULL
           ),
+          live_out, 0,
 
           newir_block(&A, 9, "M",
             newir_stmt(&A, JVST_IR_STMT_CONSUME),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_branch(&A, 4, "loop"),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 11, "M",
             newir_call(&A, 2),
+            live_kill, 0,
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_branch(&A, 4, "loop"),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
             NULL
           ),
+          live_kill, 0,
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 13, "M",
             newir_call(&A, 3),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_bitop(&A, JVST_IR_STMT_BSET, 1, "reqmask", 0),
+            live_gen,  1, newir_slot(&A, 2),
+            live_kill, 1, newir_slot(&A, 2),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_branch(&A, 4, "loop"),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_gen,  1, newir_slot(&A, 2),
+          live_kill, 1, newir_slot(&A, 2),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 3, "loop_end",
             newir_cbranch(&A, newir_btestall(&A, 1, "reqmask", 0,0),
               17, "valid",
               19, "invalid_6"
             ),
+            live_gen,  1, newir_slot(&A, 2),
+            live_in,   1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_gen,  1, newir_slot(&A, 2),
+          live_in,   1, newir_slot(&A, 2),
 
           newir_block(&A, 19, "invalid_6",
             newir_invalid(&A, JVST_INVALID_MISSING_REQUIRED_PROPERTIES,
               "missing required properties"),
+            live_out, 0,
+
             NULL
           ),
+          live_out, 0,
 
           newir_block(&A, 23, "invalid_1",
             newir_invalid(&A, JVST_INVALID_UNEXPECTED_TOKEN, "unexpected token"),
+            live_out, 0,
+
             NULL
           ),
+          live_out, 0,
 
           NULL
         ),
@@ -1381,22 +1491,35 @@ void test_ir_required(void)
         newir_frame(&A, frameindex, 2,
           newir_block(&A, 0, "entry",
             newir_stmt(&A, JVST_IR_STMT_TOKEN),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             newir_cbranch(&A, newir_istok(&A, SJP_STRING),
               3, "valid",
               5, "invalid_1"
             ),
+            live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
 
           newir_block(&A, 5, "invalid_1",
             newir_invalid(&A, JVST_INVALID_UNEXPECTED_TOKEN, "unexpected token"),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           newir_block(&A, 3, "valid",
             newir_stmt(&A, JVST_IR_STMT_VALID),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           NULL
         ),
@@ -1404,22 +1527,35 @@ void test_ir_required(void)
         newir_frame(&A, frameindex, 3,
           newir_block(&A, 0, "entry",
             newir_stmt(&A, JVST_IR_STMT_TOKEN),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             newir_cbranch(&A, newir_istok(&A, SJP_NUMBER),
               3, "valid",
               5, "invalid_1"
             ),
+            live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
 
           newir_block(&A, 5, "invalid_1",
             newir_invalid(&A, JVST_INVALID_UNEXPECTED_TOKEN, "unexpected token"),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           newir_block(&A, 3, "valid",
             newir_stmt(&A, JVST_IR_STMT_VALID),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           NULL
         ),
@@ -1442,489 +1578,7 @@ void test_ir_dependencies(void)
   // together).  Reduction will occur on a later pass.
   const struct ir_test tests[] = {
     {
-      TRANSLATE,
-      // schema: { "dependencies": {"bar": ["foo"]} }
-      newcnode_switch(&A, 1,
-        SJP_OBJECT_BEG, newcnode_bool(&A, JVST_CNODE_OR,
-                          newcnode_required(&A, stringset(&A, "bar", "foo", NULL)),
-                          newcnode_propset(&A,
-                            newcnode_prop_match(&A, RE_LITERAL, "bar", newcnode_invalid()),
-                            NULL),
-                          NULL),
-        SJP_NONE),
-
-      newir_frame(&A,
-          newir_stmt(&A, JVST_IR_STMT_TOKEN),
-          newir_if(&A, newir_istok(&A, SJP_OBJECT_BEG),
-              newir_if(&A,
-                newir_op(&A, JVST_IR_EXPR_GE, 
-                  newir_split(&A,
-                    newir_frame(&A,
-                      newir_matcher(&A, 0, "dfa"),
-                      newir_seq(&A,
-                        newir_loop(&A, "L_OBJ", 0,
-                          newir_stmt(&A, JVST_IR_STMT_TOKEN),
-                          newir_if(&A, newir_istok(&A, SJP_OBJECT_END),
-                            newir_break(&A, "L_OBJ", 0),
-                            newir_seq(&A,                                 // unnecessary SEQ should be removed in the future
-                              newir_match(&A, 0,
-                                // no match
-                                newir_case(&A, 0, 
-                                  NULL,
-                                  newir_stmt(&A, JVST_IR_STMT_CONSUME)
-                                ),
-
-                                // match "bar"
-                                newir_case(&A, 1,
-                                  newmatchset(&A, RE_LITERAL,  "bar", -1),
-                                  newir_invalid(&A, JVST_INVALID_BAD_PROPERTY_NAME, "bad property name")
-                                ),
-
-                                NULL
-                              ),
-                              NULL
-                            )
-                          ),
-                          NULL
-                        ),
-                        newir_stmt(&A, JVST_IR_STMT_VALID),
-                        NULL
-                      ),
-                      NULL
-                    ),
-
-                    newir_frame(&A,
-                      newir_bitvec(&A, 0, "reqmask", 2),
-                      newir_matcher(&A, 0, "dfa"),
-                      newir_seq(&A,
-                        newir_loop(&A, "L_OBJ", 0,
-                          newir_stmt(&A, JVST_IR_STMT_TOKEN),
-                          newir_if(&A, newir_istok(&A, SJP_OBJECT_END),
-                            newir_break(&A, "L_OBJ", 0),
-                            newir_seq(&A,
-                              newir_match(&A, 0,
-                                // no match
-                                newir_case(&A, 0, 
-                                  NULL,
-                                  newir_stmt(&A, JVST_IR_STMT_CONSUME)
-                                ),
-
-                                // match "bar"
-                                newir_case(&A, 1,
-                                  newmatchset(&A, RE_LITERAL,  "bar", -1),
-                                  newir_seq(&A,
-                                    newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 0),
-                                    newir_stmt(&A, JVST_IR_STMT_CONSUME),
-                                    NULL
-                                  )
-                                ),
-
-                                // match "foo"
-                                newir_case(&A, 2,
-                                  newmatchset(&A, RE_LITERAL,  "foo", -1),
-                                  newir_seq(&A,
-                                    newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 1),
-                                    newir_stmt(&A, JVST_IR_STMT_CONSUME),
-                                    NULL
-                                  )
-                                ),
-
-                                NULL
-                              ),
-                              NULL
-                            )
-                          ),
-                          NULL
-                        ),
-                        newir_if(&A,
-                            newir_btestall(&A, 0, "reqmask", 0, 1),
-                            newir_stmt(&A, JVST_IR_STMT_VALID),
-                            newir_invalid(&A, JVST_INVALID_MISSING_REQUIRED_PROPERTIES,
-                              "missing required properties")
-                        ),
-                        NULL
-                      ),
-                      NULL
-                    ),
-
-                    NULL
-                  ),
-                  newir_size(&A, 1)
-                ),
-                newir_stmt(&A, JVST_IR_STMT_VALID),
-                newir_invalid(&A, JVST_INVALID_SPLIT_CONDITION, "invalid split condition")
-              ),
-              newir_if(&A, newir_istok(&A, SJP_OBJECT_END),
-                newir_invalid(&A, JVST_INVALID_UNEXPECTED_TOKEN, "unexpected token"),
-                newir_if(&A, newir_istok(&A, SJP_ARRAY_END),
-                  newir_invalid(&A, JVST_INVALID_UNEXPECTED_TOKEN, "unexpected token"),
-                  newir_stmt(&A, JVST_IR_STMT_VALID)
-                )
-              )
-          ),
-          NULL
-      )
-    },
-
-    {
-      LINEARIZE,
-      // schema: { "dependencies": {"bar": ["foo"]} }
-      newcnode_switch(&A, 1,
-        SJP_OBJECT_BEG, newcnode_bool(&A, JVST_CNODE_OR,
-                          newcnode_required(&A, stringset(&A, "bar", "foo", NULL)),
-                          newcnode_propset(&A,
-                            newcnode_prop_match(&A, RE_LITERAL, "bar", newcnode_invalid()),
-                            NULL),
-                          NULL),
-        SJP_NONE),
-
-      NULL,
-
-      newir_program(&A,
-        newir_frame(&A, frameindex, 1,
-          newir_splitlist(&A, 0, 2, 2, 3),
-          newir_block(&A, 0, "entry",
-            newir_stmt(&A, JVST_IR_STMT_TOKEN),
-            newir_cbranch(&A, newir_istok(&A, SJP_OBJECT_BEG),
-              2, "true",
-              8, "false"
-            ),
-            NULL
-          ),
-
-          newir_block(&A, 8, "false",
-            newir_cbranch(&A, newir_istok(&A, SJP_OBJECT_END),
-              11, "invalid_1",
-              12, "false"
-            ),
-            NULL
-          ),
-
-          newir_block(&A, 12, "false",
-            newir_cbranch(&A, newir_istok(&A, SJP_ARRAY_END),
-              11, "invalid_1",
-              5, "valid"
-            ),
-            NULL
-          ),
-
-          newir_block(&A, 5, "valid",
-            newir_stmt(&A, JVST_IR_STMT_VALID),
-            NULL
-          ),
-
-          newir_block(&A, 2, "true",
-            newir_move(&A, newir_itemp(&A, 0), newir_split(&A, splitlist, 0)),
-            newir_move(&A, newir_itemp(&A, 2), newir_itemp(&A, 0)),
-            newir_move(&A, newir_itemp(&A, 1), newir_size(&A, 1)),
-
-            newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_GE, newir_itemp(&A, 2), newir_itemp(&A, 1)),
-              5, "valid",
-              7, "invalid_7"
-            ),
-            NULL
-          ),
-
-          newir_block(&A, 7, "invalid_7",
-            newir_invalid(&A, JVST_INVALID_SPLIT_CONDITION, "invalid split condition"),
-            NULL
-          ),
-
-          newir_block(&A, 11, "invalid_1",
-            newir_invalid(&A, JVST_INVALID_UNEXPECTED_TOKEN, "unexpected token"),
-            NULL
-          ),
-
-          NULL
-        ),
-
-        newir_frame(&A, frameindex, 2,
-          newir_matcher(&A, 0, "dfa"),
-          newir_block(&A, 0, "entry",
-            newir_branch(&A, 2, "loop"),
-            NULL
-          ),
-
-          newir_block(&A, 2, "loop",
-            newir_stmt(&A, JVST_IR_STMT_TOKEN),
-            newir_cbranch(&A, newir_istok(&A, SJP_OBJECT_END),
-              12, "valid",
-              5, "false"
-            ),
-            NULL
-          ),
-
-          newir_block(&A, 5, "false",
-            newir_move(&A, newir_itemp(&A, 0), newir_ematch(&A, 0)),
-            newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 0)),
-              7, "M",
-              8, "M_next"
-            ),
-            NULL
-          ),
-
-          newir_block(&A, 8, "M_next",
-            newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 1)),
-              10, "invalid_8",
-              11, "invalid_9"
-            ),
-            NULL
-          ),
-
-          newir_block(&A, 11, "invalid_9",
-            newir_invalid(&A, JVST_INVALID_MATCH_CASE, "invalid match case (internal error)"),
-            NULL
-          ),
-
-          newir_block(&A, 7, "M",
-            newir_stmt(&A, JVST_IR_STMT_CONSUME),
-            newir_branch(&A, 2, "loop"),
-            NULL
-          ),
-
-          newir_block(&A, 12, "valid",
-            newir_stmt(&A, JVST_IR_STMT_VALID),
-            NULL
-          ),
-
-          newir_block(&A, 10, "invalid_8",
-            newir_invalid(&A, JVST_INVALID_BAD_PROPERTY_NAME, "bad property name"),
-            NULL
-          ),
-
-          NULL
-        ),
-
-        newir_frame(&A, frameindex, 3,
-          newir_bitvec(&A, 0, "reqmask", 2),
-          newir_matcher(&A, 0, "dfa"),
-          newir_block(&A, 0, "entry",
-            newir_branch(&A, 2, "loop"),
-            NULL
-          ),
-
-          newir_block(&A, 2, "loop",
-            newir_stmt(&A, JVST_IR_STMT_TOKEN),
-            newir_cbranch(&A, newir_istok(&A, SJP_OBJECT_END),
-              1, "loop_end",
-              5, "false"
-            ),
-            NULL
-          ),
-
-          newir_block(&A, 5, "false",
-            newir_move(&A, newir_itemp(&A, 0), newir_ematch(&A, 0)),
-            newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 0)),
-              7, "M",
-              8, "M_next"
-            ),
-            NULL
-          ),
-
-          newir_block(&A, 8, "M_next",
-            newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 1)),
-              9, "M",
-              10, "M_next"
-            ),
-            NULL
-          ),
-
-          newir_block(&A, 10, "M_next",
-            newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 2)),
-              11, "M",
-              12, "invalid_9"
-            ),
-            NULL
-          ),
-
-          newir_block(&A, 12, "invalid_9",
-            newir_invalid(&A, JVST_INVALID_MATCH_CASE, "invalid match case (internal error)"),
-            NULL
-          ),
-
-          newir_block(&A, 7, "M",
-            newir_stmt(&A, JVST_IR_STMT_CONSUME),
-            newir_branch(&A, 2, "loop"),
-            NULL
-          ),
-
-          newir_block(&A, 9, "M",
-            newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 0),
-            newir_stmt(&A, JVST_IR_STMT_CONSUME),
-            newir_branch(&A, 2, "loop"),
-            NULL
-          ),
-
-          newir_block(&A, 11, "M",
-            newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 1),
-            newir_stmt(&A, JVST_IR_STMT_CONSUME),
-            newir_branch(&A, 2, "loop"),
-            NULL
-          ),
-
-          newir_block(&A, 1, "loop_end",
-            newir_cbranch(&A, newir_btestall(&A, 0, "reqmask", 0, 1),
-              15, "valid",
-              17, "invalid_6"
-            ),
-            NULL
-          ),
-
-          newir_block(&A, 17, "invalid_6",
-            newir_invalid(&A, JVST_INVALID_MISSING_REQUIRED_PROPERTIES,
-              "missing required properties"),
-            NULL
-          ),
-
-          newir_block(&A, 15, "valid",
-            newir_stmt(&A, JVST_IR_STMT_VALID),
-            NULL
-          ),
-
-          NULL
-        ),
-
-        NULL
-      )
-    },
-
-    {
-      TRANSLATE,
-      // schema: { "dependencies": {"quux": ["foo", "bar"]} }
-      newcnode_switch(&A, 1,
-        SJP_OBJECT_BEG, newcnode_bool(&A, JVST_CNODE_OR,
-                          newcnode_required(&A, stringset(&A, "quux", "foo", "bar", NULL)),
-                          newcnode_propset(&A,
-                            newcnode_prop_match(&A, RE_LITERAL, "quux", newcnode_invalid()),
-                            NULL),
-                          NULL),
-        SJP_NONE),
-
-      newir_frame(&A,
-          newir_stmt(&A, JVST_IR_STMT_TOKEN),
-          newir_if(&A, newir_istok(&A, SJP_OBJECT_BEG),
-              newir_if(&A,
-                newir_op(&A, JVST_IR_EXPR_GE, 
-                  newir_split(&A,
-                    newir_frame(&A,
-                      newir_matcher(&A, 0, "dfa"),
-                      newir_seq(&A,
-                        newir_loop(&A, "L_OBJ", 0,
-                          newir_stmt(&A, JVST_IR_STMT_TOKEN),
-                          newir_if(&A, newir_istok(&A, SJP_OBJECT_END),
-                            newir_break(&A, "L_OBJ", 0),
-                            newir_seq(&A,                                 // unnecessary SEQ should be removed in the future
-                              newir_match(&A, 0,
-                                // no match
-                                newir_case(&A, 0, 
-                                  NULL,
-                                  newir_stmt(&A, JVST_IR_STMT_CONSUME)
-                                ),
-
-                                // match "bar"
-                                newir_case(&A, 1,
-                                  newmatchset(&A, RE_LITERAL,  "quux", -1),
-                                  newir_invalid(&A, JVST_INVALID_BAD_PROPERTY_NAME, "bad property name")
-                                ),
-
-                                NULL
-                              ),
-                              NULL
-                            )
-                          ),
-                          NULL
-                        ),
-                        newir_stmt(&A, JVST_IR_STMT_VALID),
-                        NULL
-                      ),
-                      NULL
-                    ),
-
-                    newir_frame(&A,
-                      newir_bitvec(&A, 0, "reqmask", 3),
-                      newir_matcher(&A, 0, "dfa"),
-                      newir_seq(&A,
-                        newir_loop(&A, "L_OBJ", 0,
-                          newir_stmt(&A, JVST_IR_STMT_TOKEN),
-                          newir_if(&A, newir_istok(&A, SJP_OBJECT_END),
-                            newir_break(&A, "L_OBJ", 0),
-                            newir_seq(&A,
-                              newir_match(&A, 0,
-                                // no match
-                                newir_case(&A, 0, 
-                                  NULL,
-                                  newir_stmt(&A, JVST_IR_STMT_CONSUME)
-                                ),
-
-                                // match "bar"
-                                newir_case(&A, 1,
-                                  newmatchset(&A, RE_LITERAL,  "bar", -1),
-                                  newir_seq(&A,
-                                    newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 2),
-                                    newir_stmt(&A, JVST_IR_STMT_CONSUME),
-                                    NULL
-                                  )
-                                ),
-
-                                // match "foo"
-                                newir_case(&A, 2,
-                                  newmatchset(&A, RE_LITERAL,  "foo", -1),
-                                  newir_seq(&A,
-                                    newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 1),
-                                    newir_stmt(&A, JVST_IR_STMT_CONSUME),
-                                    NULL
-                                  )
-                                ),
-
-                                // match "quux"
-                                newir_case(&A, 3,
-                                  newmatchset(&A, RE_LITERAL,  "quux", -1),
-                                  newir_seq(&A,
-                                    newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 0),
-                                    newir_stmt(&A, JVST_IR_STMT_CONSUME),
-                                    NULL
-                                  )
-                                ),
-
-                                NULL
-                              ),
-                              NULL
-                            )
-                          ),
-                          NULL
-                        ),
-                        newir_if(&A,
-                            newir_btestall(&A, 0, "reqmask", 0, 2),
-                            newir_stmt(&A, JVST_IR_STMT_VALID),
-                            newir_invalid(&A, JVST_INVALID_MISSING_REQUIRED_PROPERTIES,
-                              "missing required properties")
-                        ),
-                        NULL
-                      ),
-                      NULL
-                    ),
-
-                    NULL
-                  ),
-                  newir_size(&A, 1)
-                ),
-                newir_stmt(&A, JVST_IR_STMT_VALID),
-                newir_invalid(&A, JVST_INVALID_SPLIT_CONDITION, "invalid split condition")
-              ),
-              newir_if(&A, newir_istok(&A, SJP_OBJECT_END),
-                newir_invalid(&A, JVST_INVALID_UNEXPECTED_TOKEN, "unexpected token"),
-                newir_if(&A, newir_istok(&A, SJP_ARRAY_END),
-                  newir_invalid(&A, JVST_INVALID_UNEXPECTED_TOKEN, "unexpected token"),
-                  newir_stmt(&A, JVST_IR_STMT_VALID)
-                )
-              )
-          ),
-          NULL
-      )
-    },
-
-    {
-      LINEARIZE,
+      LIVE_ANNO,
       // schema: { "dependencies": {"quux": ["foo", "bar"]} }
       newcnode_switch(&A, 1,
         SJP_OBJECT_BEG, newcnode_bool(&A, JVST_CNODE_OR,
@@ -1940,57 +1594,106 @@ void test_ir_dependencies(void)
       newir_program(&A,
         newir_frame(&A, frameindex, 1,
           newir_splitlist(&A, 0, 2, 2, 3),
+
           newir_block(&A, 0, "entry",
             newir_stmt(&A, JVST_IR_STMT_TOKEN),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             newir_cbranch(&A, newir_istok(&A, SJP_OBJECT_BEG),
               2, "true",
               8, "false"
             ),
+            live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_out,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
 
           newir_block(&A, 8, "false",
             newir_cbranch(&A, newir_istok(&A, SJP_OBJECT_END),
               11, "invalid_1",
               12, "false"
             ),
+            live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             NULL
           ),
+          live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_out,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
 
           newir_block(&A, 12, "false",
             newir_cbranch(&A, newir_istok(&A, SJP_ARRAY_END),
               11, "invalid_1",
               5, "valid"
             ),
+            live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             NULL
           ),
+          live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
 
           newir_block(&A, 5, "valid",
             newir_stmt(&A, JVST_IR_STMT_VALID),
+            live_in, 0,
             NULL
           ),
+          live_in, 0,
 
           newir_block(&A, 2, "true",
             newir_move(&A, newir_itemp(&A, 0), newir_split(&A, splitlist, 0)),
+            live_kill, 1, newir_itemp(&A, 0),
+            live_out,  1, newir_itemp(&A, 0),
+
             newir_move(&A, newir_itemp(&A, 2), newir_itemp(&A, 0)),
+            live_kill, 1, newir_itemp(&A, 2),
+            live_in,   1, newir_itemp(&A, 0),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_out,  1, newir_itemp(&A, 2),
+
             newir_move(&A, newir_itemp(&A, 1), newir_size(&A, 1)),
+            live_kill, 1, newir_itemp(&A, 1),
+            live_in,   1, newir_itemp(&A, 2),
+            live_gen,  0,
+            live_out,  2, newir_itemp(&A, 2), newir_itemp(&A, 1),
 
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_GE, newir_itemp(&A, 2), newir_itemp(&A, 1)),
               5, "valid",
               7, "invalid_7"
             ),
+            live_in,   2, newir_itemp(&A, 2), newir_itemp(&A, 1),
+            live_gen,  2, newir_itemp(&A, 2), newir_itemp(&A, 1),
+
             NULL
           ),
+          live_kill, 3, newir_itemp(&A, 0), newir_itemp(&A, 2), newir_itemp(&A, 1),
+          live_in,   0,
+          live_gen,  0,
+          live_out,  0,
 
           newir_block(&A, 7, "invalid_7",
             newir_invalid(&A, JVST_INVALID_SPLIT_CONDITION, "invalid split condition"),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           newir_block(&A, 11, "invalid_1",
             newir_invalid(&A, JVST_INVALID_UNEXPECTED_TOKEN, "unexpected token"),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           NULL
         ),
@@ -1999,55 +1702,108 @@ void test_ir_dependencies(void)
           newir_matcher(&A, 0, "dfa"),
           newir_block(&A, 0, "entry",
             newir_branch(&A, 2, "loop"),
+            live_in,   0,
+            live_out,  0,
+
             NULL
           ),
+          live_in,   0,
+          live_out,  0,
 
           newir_block(&A, 2, "loop",
             newir_stmt(&A, JVST_IR_STMT_TOKEN),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   0,
+            live_out,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             newir_cbranch(&A, newir_istok(&A, SJP_OBJECT_END),
               12, "valid",
               5, "false"
             ),
+            live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out,  0,
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   0,
+          live_out,  0,
 
           newir_block(&A, 5, "false",
             newir_move(&A, newir_itemp(&A, 0), newir_ematch(&A, 0)),
+            live_kill, 1, newir_itemp(&A, 0),
+            live_in,   0,
+            live_out,  1, newir_itemp(&A, 0),
+
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 0)),
               7, "M",
               8, "M_next"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   1, newir_itemp(&A, 0),
+            live_out,  1, newir_itemp(&A, 0),
+
             NULL
           ),
+          live_kill, 1, newir_itemp(&A, 0),
+          live_in,   0,
+          live_out,  1, newir_itemp(&A, 0),
 
           newir_block(&A, 8, "M_next",
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 1)),
               10, "invalid_8",
               11, "invalid_9"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   1, newir_itemp(&A, 0),
+            live_out,  0,
+
             NULL
           ),
+          live_gen,  1, newir_itemp(&A, 0),
+          live_in,   1, newir_itemp(&A, 0),
+          live_out,  0,
 
           newir_block(&A, 11, "invalid_9",
             newir_invalid(&A, JVST_INVALID_MATCH_CASE, "invalid match case (internal error)"),
+            live_out,  0,
+
             NULL
           ),
+          live_out,  0,
 
           newir_block(&A, 7, "M",
             newir_stmt(&A, JVST_IR_STMT_CONSUME),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   0,
+            live_out,  0,
+
             newir_branch(&A, 2, "loop"),
+            live_in,   0,
+            live_out,  0,
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   0,
+          live_out,  0,
 
           newir_block(&A, 12, "valid",
             newir_stmt(&A, JVST_IR_STMT_VALID),
+            live_in,   0,
+
             NULL
           ),
+          live_in,   0,
 
           newir_block(&A, 10, "invalid_8",
             newir_invalid(&A, JVST_INVALID_BAD_PROPERTY_NAME, "bad property name"),
+            live_in,   0,
+
             NULL
           ),
+          live_in,   0,
 
           NULL
         ),
@@ -2055,103 +1811,227 @@ void test_ir_dependencies(void)
         newir_frame(&A, frameindex, 3,
           newir_bitvec(&A, 0, "reqmask", 3),
           newir_matcher(&A, 0, "dfa"),
+
           newir_block(&A, 0, "entry",
             newir_branch(&A, 2, "loop"),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 2, "loop",
             newir_stmt(&A, JVST_IR_STMT_TOKEN),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             newir_cbranch(&A, newir_istok(&A, SJP_OBJECT_END),
               1, "loop_end",
               5, "false"
             ),
+            live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 5, "false",
             newir_move(&A, newir_itemp(&A, 0), newir_ematch(&A, 0)),
+            live_kill, 1, newir_itemp(&A, 0),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
+
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 0)),
               7, "M",
               8, "M_next"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+            live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
+
             NULL
           ),
+          live_kill, 1, newir_itemp(&A, 0),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
 
           newir_block(&A, 8, "M_next",
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 1)),
               9, "M",
               10, "M_next"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+            live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
+
             NULL
           ),
+          live_gen,  1, newir_itemp(&A, 0),
+          live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+          live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
+
 
           newir_block(&A, 10, "M_next",
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 2)),
               11, "M",
               12, "M_next"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+            live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
+
             NULL
           ),
+          live_gen,  1, newir_itemp(&A, 0),
+          live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+          live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
 
           newir_block(&A, 12, "M_next",
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 3)),
               13, "M",
               14, "invalid_9"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_gen,  1, newir_itemp(&A, 0),
+          live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 14, "invalid_9",
             newir_invalid(&A, JVST_INVALID_MATCH_CASE, "invalid match case (internal error)"),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           newir_block(&A, 7, "M",
             newir_stmt(&A, JVST_IR_STMT_CONSUME),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_branch(&A, 2, "loop"),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 9, "M",
             newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 2),
+            live_kill, 1, newir_slot(&A, 2),
+            live_gen,  1, newir_slot(&A, 2),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_stmt(&A, JVST_IR_STMT_CONSUME),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_branch(&A, 2, "loop"),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_kill, 2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_gen,  1, newir_slot(&A, 2),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 11, "M",
             newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 1),
+            live_kill, 1, newir_slot(&A, 2),
+            live_gen,  1, newir_slot(&A, 2),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_stmt(&A, JVST_IR_STMT_CONSUME),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_branch(&A, 2, "loop"),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_kill, 2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_gen,  1, newir_slot(&A, 2),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 13, "M",
             newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 0),
+            live_kill, 1, newir_slot(&A, 2),
+            live_gen,  1, newir_slot(&A, 2),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_stmt(&A, JVST_IR_STMT_CONSUME),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_branch(&A, 2, "loop"),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_kill, 2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_gen,  1, newir_slot(&A, 2),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 1, "loop_end",
             newir_cbranch(&A, newir_btestall(&A, 0, "reqmask", 0, 2),
               17, "valid",
               19, "invalid_6"
             ),
+            live_gen,  1, newir_slot(&A, 2),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  0,
+
             NULL
           ),
+          live_gen,  1, newir_slot(&A, 2),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  0,
 
           newir_block(&A, 19, "invalid_6",
             newir_invalid(&A, JVST_INVALID_MISSING_REQUIRED_PROPERTIES,
               "missing required properties"),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           newir_block(&A, 17, "valid",
             newir_stmt(&A, JVST_IR_STMT_VALID),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           NULL
         ),
@@ -2161,250 +2041,7 @@ void test_ir_dependencies(void)
     },
 
     {
-      TRANSLATE,
-      // schema: { "dependencies": {"quux": ["foo", "bar"], "this": ["that"]} }
-      newcnode_switch(&A, 1,
-        SJP_OBJECT_BEG, newcnode_bool(&A, JVST_CNODE_AND,
-                          newcnode_bool(&A, JVST_CNODE_OR,
-                            newcnode_required(&A, stringset(&A, "quux", "foo", "bar", NULL)),
-                            newcnode_propset(&A,
-                              newcnode_prop_match(&A, RE_LITERAL, "quux", newcnode_invalid()),
-                              NULL),
-                            NULL),
-                          newcnode_bool(&A, JVST_CNODE_OR,
-                            newcnode_required(&A, stringset(&A, "this", "that", NULL)),
-                            newcnode_propset(&A,
-                              newcnode_prop_match(&A, RE_LITERAL, "this", newcnode_invalid()),
-                              NULL),
-                            NULL),
-                          NULL),
-        SJP_NONE),
-
-      newir_frame(&A,
-          newir_bitvec(&A, 0, "splitvec", 4),
-          newir_stmt(&A, JVST_IR_STMT_TOKEN),
-          newir_if(&A, newir_istok(&A, SJP_OBJECT_BEG),
-              newir_seq(&A,
-                newir_splitvec(&A, 0, "splitvec",
-                  newir_frame(&A,
-                    newir_matcher(&A, 0, "dfa"),
-                    newir_seq(&A,
-                      newir_loop(&A, "L_OBJ", 0,
-                        newir_stmt(&A, JVST_IR_STMT_TOKEN),
-                        newir_if(&A, newir_istok(&A, SJP_OBJECT_END),
-                          newir_break(&A, "L_OBJ", 0),
-                          newir_seq(&A,                                 // unnecessary SEQ should be removed in the future
-                            newir_match(&A, 0,
-                              // no match
-                              newir_case(&A, 0, 
-                                NULL,
-                                newir_stmt(&A, JVST_IR_STMT_CONSUME)
-                              ),
-
-                              // match "bar"
-                              newir_case(&A, 1,
-                                newmatchset(&A, RE_LITERAL,  "quux", -1),
-                                newir_invalid(&A, JVST_INVALID_BAD_PROPERTY_NAME, "bad property name")
-                              ),
-
-                              NULL
-                            ),
-                            NULL
-                          )
-                        ),
-                        NULL
-                      ),
-                      newir_stmt(&A, JVST_IR_STMT_VALID),
-                      NULL
-                    ),
-                    NULL
-                  ),
-
-                  newir_frame(&A,
-                    newir_bitvec(&A, 0, "reqmask", 3),
-                    newir_matcher(&A, 0, "dfa"),
-                    newir_seq(&A,
-                      newir_loop(&A, "L_OBJ", 0,
-                        newir_stmt(&A, JVST_IR_STMT_TOKEN),
-                        newir_if(&A, newir_istok(&A, SJP_OBJECT_END),
-                          newir_break(&A, "L_OBJ", 0),
-                          newir_seq(&A,
-                            newir_match(&A, 0,
-                              // no match
-                              newir_case(&A, 0, 
-                                NULL,
-                                newir_stmt(&A, JVST_IR_STMT_CONSUME)
-                              ),
-
-                              // match "bar"
-                              newir_case(&A, 1,
-                                newmatchset(&A, RE_LITERAL,  "bar", -1),
-                                newir_seq(&A,
-                                  newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 2),
-                                  newir_stmt(&A, JVST_IR_STMT_CONSUME),
-                                  NULL
-                                )
-                              ),
-
-                              // match "foo"
-                              newir_case(&A, 2,
-                                newmatchset(&A, RE_LITERAL,  "foo", -1),
-                                newir_seq(&A,
-                                  newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 1),
-                                  newir_stmt(&A, JVST_IR_STMT_CONSUME),
-                                  NULL
-                                )
-                              ),
-
-                              // match "quux"
-                              newir_case(&A, 3,
-                                newmatchset(&A, RE_LITERAL,  "quux", -1),
-                                newir_seq(&A,
-                                  newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 0),
-                                  newir_stmt(&A, JVST_IR_STMT_CONSUME),
-                                  NULL
-                                )
-                              ),
-
-                              NULL
-                            ),
-                            NULL
-                          )
-                        ),
-                        NULL
-                      ),
-                      newir_if(&A,
-                          newir_btestall(&A, 0, "reqmask", 0, 2),
-                          newir_stmt(&A, JVST_IR_STMT_VALID),
-                          newir_invalid(&A, JVST_INVALID_MISSING_REQUIRED_PROPERTIES,
-                            "missing required properties")
-                      ),
-                      NULL
-                    ),
-                    NULL
-                  ),
-
-                  newir_frame(&A,
-                    newir_matcher(&A, 0, "dfa"),
-                    newir_seq(&A,
-                      newir_loop(&A, "L_OBJ", 0,
-                        newir_stmt(&A, JVST_IR_STMT_TOKEN),
-                        newir_if(&A, newir_istok(&A, SJP_OBJECT_END),
-                          newir_break(&A, "L_OBJ", 0),
-                          newir_seq(&A,                                 // unnecessary SEQ should be removed in the future
-                            newir_match(&A, 0,
-                              // no match
-                              newir_case(&A, 0, 
-                                NULL,
-                                newir_stmt(&A, JVST_IR_STMT_CONSUME)
-                              ),
-
-                              // match "bar"
-                              newir_case(&A, 1,
-                                newmatchset(&A, RE_LITERAL,  "this", -1),
-                                newir_invalid(&A, JVST_INVALID_BAD_PROPERTY_NAME, "bad property name")
-                              ),
-
-                              NULL
-                            ),
-                            NULL
-                          )
-                        ),
-                        NULL
-                      ),
-                      newir_stmt(&A, JVST_IR_STMT_VALID),
-                      NULL
-                    ),
-                    NULL
-                  ),
-
-                  newir_frame(&A,
-                    newir_bitvec(&A, 0, "reqmask", 2),
-                    newir_matcher(&A, 0, "dfa"),
-                    newir_seq(&A,
-                      newir_loop(&A, "L_OBJ", 0,
-                        newir_stmt(&A, JVST_IR_STMT_TOKEN),
-                        newir_if(&A, newir_istok(&A, SJP_OBJECT_END),
-                          newir_break(&A, "L_OBJ", 0),
-                          newir_seq(&A,
-                            newir_match(&A, 0,
-                              // no match
-                              newir_case(&A, 0, 
-                                NULL,
-                                newir_stmt(&A, JVST_IR_STMT_CONSUME)
-                              ),
-
-                              // match "quux"
-                              newir_case(&A, 1,
-                                newmatchset(&A, RE_LITERAL,  "that", -1),
-                                newir_seq(&A, 
-                                  newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 1),
-                                  newir_stmt(&A, JVST_IR_STMT_CONSUME),
-                                  NULL
-                                )
-                              ),
-
-                              // match "bar"
-                              newir_case(&A, 2,
-                                newmatchset(&A, RE_LITERAL,  "this", -1),
-                                newir_seq(&A, 
-                                  newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 0),
-                                  newir_stmt(&A, JVST_IR_STMT_CONSUME),
-                                  NULL
-                                )
-                              ),
-
-                              NULL
-                            ),
-                            NULL
-                          )
-                        ),
-                        NULL
-                      ),
-                      newir_if(&A,
-                          newir_btestall(&A, 0, "reqmask", 0, 1),
-                          newir_stmt(&A, JVST_IR_STMT_VALID),
-                          newir_invalid(&A, JVST_INVALID_MISSING_REQUIRED_PROPERTIES,
-                            "missing required properties")
-                      ),
-                      NULL
-                    ),
-                    NULL
-                  ),
-
-                  NULL
-                ),
-                newir_if(&A,
-                  newir_op(&A, JVST_IR_EXPR_AND, 
-                    newir_op(&A, JVST_IR_EXPR_OR, 
-                      newir_btestany(&A, 0, "splitvec", 0, 0),  // XXX - can combine the OR'd stuff...
-                      newir_btest(&A, 0, "splitvec", 1)
-                    ),
-                    newir_op(&A, JVST_IR_EXPR_OR,               // XXX - can combine the OR'd stuff...
-                      newir_btestany(&A, 0, "splitvec", 2, 2),
-                      newir_btest(&A, 0, "splitvec", 3)
-                    )
-                  ),
-                  newir_stmt(&A, JVST_IR_STMT_VALID),
-                  newir_invalid(&A, JVST_INVALID_SPLIT_CONDITION, "invalid split condition")
-                ),
-
-                NULL
-              ),
-              newir_if(&A, newir_istok(&A, SJP_OBJECT_END),
-                newir_invalid(&A, JVST_INVALID_UNEXPECTED_TOKEN, "unexpected token"),
-                newir_if(&A, newir_istok(&A, SJP_ARRAY_END),
-                  newir_invalid(&A, JVST_INVALID_UNEXPECTED_TOKEN, "unexpected token"),
-                  newir_stmt(&A, JVST_IR_STMT_VALID)
-                )
-              )
-          ),
-          NULL
-      )
-    },
-
-    {
-      LINEARIZE,
+      LIVE_ANNO,
       // schema: { "dependencies": {"quux": ["foo", "bar"], "this": ["that"]} }
       newcnode_switch(&A, 1,
         SJP_OBJECT_BEG, newcnode_bool(&A, JVST_CNODE_AND,
@@ -2429,136 +2066,256 @@ void test_ir_dependencies(void)
         newir_frame(&A, frameindex, 1,
           newir_splitlist(&A, 0, 4, 2, 3, 4, 5),
           newir_bitvec(&A, 0, "splitvec", 4),
+
           newir_block(&A, 0, "entry",
             newir_stmt(&A, JVST_IR_STMT_TOKEN),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   0,
+            live_out,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             newir_cbranch(&A, newir_istok(&A, SJP_OBJECT_BEG),
               2, "true",
               11, "false"
             ),
+            live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   0,
+          live_out,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
 
           newir_block(&A, 11, "false",
             newir_cbranch(&A, newir_istok(&A, SJP_OBJECT_END),
               14, "invalid_1",
               15, "false"
             ),
+            live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             NULL
           ),
+          live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_out,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
 
           newir_block(&A, 15, "false",
             newir_cbranch(&A, newir_istok(&A, SJP_ARRAY_END),
               14, "invalid_1",
               5, "valid"
             ),
+            live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out,  0,
+
             NULL
           ),
+          live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_out,  0,
 
           newir_block(&A, 5, "valid",
             newir_stmt(&A, JVST_IR_STMT_VALID),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           newir_block(&A, 2, "true",
             newir_splitvec(&A, 0, "splitvec", splitlist, 0),
+            live_kill, 1, newir_slot(&A, 2),
+            live_gen,  0,
+            live_in,   0,
+            live_out,  1, newir_slot(&A, 2),
 
             newir_cbranch(&A, newir_btestany(&A, 0, "splitvec", 0, 0),  // XXX - can combine the OR'd stuff...
               8, "and_true",
               9, "or_false"
             ),
+            live_gen,  1, newir_slot(&A, 2),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_kill, 1, newir_slot(&A, 2),
+          live_gen,  0,
+          live_in,   0,
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 9, "or_false",
             newir_cbranch(&A, newir_btest(&A, 0, "splitvec", 1),  // XXX - can combine the OR'd stuff...
               8, "and_true",
               7, "invalid_7"
             ),
+            live_gen,  1, newir_slot(&A, 2),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_gen,  1, newir_slot(&A, 2),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 7, "invalid_7",
             newir_invalid(&A, JVST_INVALID_SPLIT_CONDITION, "invalid split condition"),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           newir_block(&A, 8, "and_true",
             newir_cbranch(&A, newir_btestany(&A, 0, "splitvec", 2,2),  // XXX - can combine the OR'd stuff...
               5, "valid",
               10, "or_false"
             ),
+            live_gen,  1, newir_slot(&A, 2),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_gen,  1, newir_slot(&A, 2),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
+
 
           newir_block(&A, 10, "or_false",
             newir_cbranch(&A, newir_btest(&A, 0, "splitvec", 3),  // XXX - can combine the OR'd stuff...
               5, "valid",
               7, "invalid_7"
             ),
+            live_gen,  1, newir_slot(&A, 2),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  0,
+
             NULL
           ),
+          live_gen,  1, newir_slot(&A, 2),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  0,
 
           newir_block(&A, 14, "invalid_1",
             newir_invalid(&A, JVST_INVALID_UNEXPECTED_TOKEN, "unexpected token"),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           NULL
         ),
 
         newir_frame(&A, frameindex, 2,
           newir_matcher(&A, 0, "dfa"),
+
           newir_block(&A, 0, "entry",
             newir_branch(&A, 2, "loop"),
+            live_in,   0,
             NULL
           ),
+          live_in,   0,
 
           newir_block(&A, 2, "loop",
             newir_stmt(&A, JVST_IR_STMT_TOKEN),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   0,
+            live_out,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             newir_cbranch(&A, newir_istok(&A, SJP_OBJECT_END),
               12, "valid",
               5, "false"
             ),
+            live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out,  0,
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   0,
+          live_out,  0,
 
           newir_block(&A, 5, "false",
             newir_move(&A, newir_itemp(&A, 0), newir_ematch(&A, 0)),
+            live_kill, 1, newir_itemp(&A, 0),
+            live_in,   0,
+            live_out,  1, newir_itemp(&A, 0),
+
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 0)),
               7, "M",
               8, "M_next"
-            ),
+              ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   1, newir_itemp(&A, 0),
+            live_out,  1, newir_itemp(&A, 0),
+
             NULL
           ),
+          live_kill, 1, newir_itemp(&A, 0),
+          live_in,   0,
+          live_out,  1, newir_itemp(&A, 0),
 
           newir_block(&A, 8, "M_next",
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 1)),
               10, "invalid_8",
               11, "invalid_9"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   1, newir_itemp(&A, 0),
+            live_out,  0,
+
             NULL
           ),
+          live_gen,  1, newir_itemp(&A, 0),
+          live_in,   1, newir_itemp(&A, 0),
+          live_out,  0,
 
           newir_block(&A, 11, "invalid_9",
             newir_invalid(&A, JVST_INVALID_MATCH_CASE, "invalid match case (internal error)"),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           newir_block(&A, 7, "M",
             newir_stmt(&A, JVST_IR_STMT_CONSUME),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   0,
+            live_out,  0,
+
             newir_branch(&A, 2, "loop"),
+            live_in,   0,
+            live_out,  0,
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   0,
+          live_out,  0,
 
           newir_block(&A, 12, "valid",
             newir_stmt(&A, JVST_IR_STMT_VALID),
+            live_in,   0,
+
             NULL
           ),
+          live_in,   0,
 
           newir_block(&A, 10, "invalid_8",
             newir_invalid(&A, JVST_INVALID_BAD_PROPERTY_NAME, "bad property name"),
+            live_in,   0,
+
             NULL
           ),
+          live_in,   0,
 
           NULL
         ),
@@ -2566,160 +2323,333 @@ void test_ir_dependencies(void)
         newir_frame(&A, frameindex, 3,
           newir_bitvec(&A, 0, "reqmask", 3),
           newir_matcher(&A, 0, "dfa"),
+
           newir_block(&A, 0, "entry",
             newir_branch(&A, 2, "loop"),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
             NULL
           ),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 2, "loop",
             newir_stmt(&A, JVST_IR_STMT_TOKEN),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             newir_cbranch(&A, newir_istok(&A, SJP_OBJECT_END),
               1, "loop_end",
               5, "false"
             ),
+            live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 5, "false",
             newir_move(&A, newir_itemp(&A, 0), newir_ematch(&A, 0)),
+            live_kill, 1, newir_itemp(&A, 0),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
+
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 0)),
               7, "M",
               8, "M_next"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+            live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
+
             NULL
           ),
+          live_kill, 1, newir_itemp(&A, 0),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
 
           newir_block(&A, 8, "M_next",
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 1)),
               9, "M",
               10, "M_next"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+            live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
+
             NULL
           ),
+          live_gen,  1, newir_itemp(&A, 0),
+          live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+          live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
 
           newir_block(&A, 10, "M_next",
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 2)),
               11, "M",
               12, "M_next"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+            live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
+
             NULL
           ),
+          live_gen,  1, newir_itemp(&A, 0),
+          live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+          live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
 
           newir_block(&A, 12, "M_next",
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 3)),
               13, "M",
               14, "invalid_9"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_gen,  1, newir_itemp(&A, 0),
+          live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 14, "invalid_9",
             newir_invalid(&A, JVST_INVALID_MATCH_CASE, "invalid match case (internal error)"),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           newir_block(&A, 7, "M",
             newir_stmt(&A, JVST_IR_STMT_CONSUME),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_branch(&A, 2, "loop"),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 9, "M",
             newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 2),
+            live_gen,  1, newir_slot(&A, 2),
+            live_kill, 1, newir_slot(&A, 2),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_stmt(&A, JVST_IR_STMT_CONSUME),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_branch(&A, 2, "loop"),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_gen,  1, newir_slot(&A, 2),
+          live_kill, 2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 11, "M",
             newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 1),
+            live_gen,  1, newir_slot(&A, 2),
+            live_kill, 1, newir_slot(&A, 2),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_stmt(&A, JVST_IR_STMT_CONSUME),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_branch(&A, 2, "loop"),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_gen,  1, newir_slot(&A, 2),
+          live_kill, 2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 13, "M",
             newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 0),
+            live_gen,  1, newir_slot(&A, 2),
+            live_kill, 1, newir_slot(&A, 2),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_stmt(&A, JVST_IR_STMT_CONSUME),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_branch(&A, 2, "loop"),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_gen,  1, newir_slot(&A, 2),
+          live_kill, 2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 1, "loop_end",
             newir_cbranch(&A, newir_btestall(&A, 0, "reqmask", 0, 2),
               17, "valid",
               19, "invalid_6"
             ),
+            live_gen,  1, newir_slot(&A, 2),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  0,
+
             NULL
           ),
+          live_gen,  1, newir_slot(&A, 2),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  0,
 
           newir_block(&A, 19, "invalid_6",
             newir_invalid(&A, JVST_INVALID_MISSING_REQUIRED_PROPERTIES,
               "missing required properties"),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           newir_block(&A, 17, "valid",
             newir_stmt(&A, JVST_IR_STMT_VALID),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           NULL
         ),
 
         newir_frame(&A, frameindex, 4,
           newir_matcher(&A, 0, "dfa"),
+
           newir_block(&A, 0, "entry",
             newir_branch(&A, 2, "loop"),
+            live_in,   0,
+
             NULL
           ),
+          live_in,   0,
 
           newir_block(&A, 2, "loop",
             newir_stmt(&A, JVST_IR_STMT_TOKEN),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   0,
+            live_out,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             newir_cbranch(&A, newir_istok(&A, SJP_OBJECT_END),
               12, "valid",
               5, "false"
             ),
+            live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out,  0,
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   0,
+          live_out,  0,
 
           newir_block(&A, 5, "false",
             newir_move(&A, newir_itemp(&A, 0), newir_ematch(&A, 0)),
+            live_kill, 1, newir_itemp(&A, 0),
+            live_in,   0,
+            live_out,  1, newir_itemp(&A, 0),
+
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 0)),
               7, "M",
               8, "M_next"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   1, newir_itemp(&A, 0),
+            live_out,  1, newir_itemp(&A, 0),
+
             NULL
           ),
+          live_kill, 1, newir_itemp(&A, 0),
+          live_in,   0,
+          live_out,  1, newir_itemp(&A, 0),
 
           newir_block(&A, 8, "M_next",
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 1)),
               10, "invalid_8",
               11, "invalid_9"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   1, newir_itemp(&A, 0),
+            live_out,  0,
+
             NULL
           ),
+          live_gen,  1, newir_itemp(&A, 0),
+          live_in,   1, newir_itemp(&A, 0),
+          live_out,  0,
 
           newir_block(&A, 11, "invalid_9",
             newir_invalid(&A, JVST_INVALID_MATCH_CASE, "invalid match case (internal error)"),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           newir_block(&A, 7, "M",
             newir_stmt(&A, JVST_IR_STMT_CONSUME),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   0,
+            live_out,  0,
+
             newir_branch(&A, 2, "loop"),
+            live_in,   0,
+            live_out,  0,
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   0,
+          live_out,  0,
 
           newir_block(&A, 12, "valid",
             newir_stmt(&A, JVST_IR_STMT_VALID),
+            live_in,   0,
+
             NULL
           ),
+          live_in,   0,
 
           newir_block(&A, 10, "invalid_8",
             newir_invalid(&A, JVST_INVALID_BAD_PROPERTY_NAME, "bad property name"),
+            live_in,   0,
+
             NULL
           ),
+          live_in,   0,
 
           NULL
         ),
@@ -2729,86 +2659,185 @@ void test_ir_dependencies(void)
           newir_matcher(&A, 0, "dfa"),
           newir_block(&A, 0, "entry",
             newir_branch(&A, 2, "loop"),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 2, "loop",
             newir_stmt(&A, JVST_IR_STMT_TOKEN),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+
             newir_cbranch(&A, newir_istok(&A, SJP_OBJECT_END),
               1, "loop_end",
               5, "false"
             ),
+            live_gen,  1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 5, "false",
             newir_move(&A, newir_itemp(&A, 0), newir_ematch(&A, 0)),
+            live_kill, 1, newir_itemp(&A, 0),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
+
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 0)),
               7, "M",
               8, "M_next"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+            live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
+
             NULL
           ),
+          live_kill, 1, newir_itemp(&A, 0),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
 
           newir_block(&A, 8, "M_next",
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 1)),
               9, "M",
               10, "M_next"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+            live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
+
             NULL
           ),
+          live_gen,  1, newir_itemp(&A, 0),
+          live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+          live_out,  2, newir_slot(&A, 2), newir_itemp(&A, 0),
 
           newir_block(&A, 10, "M_next",
             newir_cbranch(&A, newir_op(&A, JVST_IR_EXPR_EQ, newir_itemp(&A, 0), newir_size(&A, 2)),
               11, "M",
               12, "invalid_9"
             ),
+            live_gen,  1, newir_itemp(&A, 0),
+            live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_gen,  1, newir_itemp(&A, 0),
+          live_in,   2, newir_slot(&A, 2), newir_itemp(&A, 0),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 12, "invalid_9",
             newir_invalid(&A, JVST_INVALID_MATCH_CASE, "invalid match case (internal error)"),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           newir_block(&A, 7, "M",
             newir_stmt(&A, JVST_IR_STMT_CONSUME),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_branch(&A, 2, "loop"),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 9, "M",
             newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 1),
+            live_gen,  1, newir_slot(&A, 2),
+            live_kill, 1, newir_slot(&A, 2),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_stmt(&A, JVST_IR_STMT_CONSUME),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_branch(&A, 2, "loop"),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_gen,  1, newir_slot(&A, 2),
+          live_kill, 2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 11, "M",
             newir_bitop(&A, JVST_IR_STMT_BSET, 0, "reqmask", 0),
+            live_gen,  1, newir_slot(&A, 2),
+            live_kill, 1, newir_slot(&A, 2),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_stmt(&A, JVST_IR_STMT_CONSUME),
+            live_kill, 1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             newir_branch(&A, 2, "loop"),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  1, newir_slot(&A, 2),
+
             NULL
           ),
+          live_gen,  1, newir_slot(&A, 2),
+          live_kill, 2, newir_slot(&A, 2), newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  1, newir_slot(&A, 2),
 
           newir_block(&A, 1, "loop_end",
             newir_cbranch(&A, newir_btestall(&A, 0, "reqmask", 0, 1),
               15, "valid",
               17, "invalid_6"
             ),
+            live_gen,  1, newir_slot(&A, 2),
+            live_in,   1, newir_slot(&A, 2),
+            live_out,  0,
+
             NULL
           ),
+          live_gen,  1, newir_slot(&A, 2),
+          live_in,   1, newir_slot(&A, 2),
+          live_out,  0,
 
           newir_block(&A, 17, "invalid_6",
             newir_invalid(&A, JVST_INVALID_MISSING_REQUIRED_PROPERTIES,
               "missing required properties"),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           newir_block(&A, 15, "valid",
             newir_stmt(&A, JVST_IR_STMT_VALID),
+            live_in, 0,
+
             NULL
           ),
+          live_in, 0,
 
           NULL
         ),
@@ -2895,11 +2924,9 @@ int main(void)
   test_ir_minmax_properties_1();
   test_ir_minproperties_2();
 
-  /*
   test_ir_required();
 
   test_ir_dependencies();
-  */
 
   /* incomplete tests... placeholders for conversion from cnode tests */
   test_ir_minproperties_3();

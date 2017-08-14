@@ -4963,8 +4963,27 @@ collect_variables_expr(struct jvst_ir_expr *expr, struct jvst_ir_varlist *vl)
 	case JVST_IR_EXPR_BTESTALL:
 	case JVST_IR_EXPR_BTESTANY:
 	case JVST_IR_EXPR_BTESTONE:
-	case JVST_IR_EXPR_BCOUNT:
+		{
+			struct jvst_ir_stmt *bitvec;
+			size_t ind0, ind1, ind;
 
+			bitvec = expr->u.btest.bitvec;
+			assert(bitvec != NULL);
+			assert(bitvec->type == JVST_IR_STMT_BITVECTOR);
+
+			ind0 = bitvec->u.bitvec.frame_off + expr->u.btest.b0 / 64;
+			ind1 = bitvec->u.bitvec.frame_off + expr->u.btest.b1 / 64;
+
+			for (ind = ind0; ind <= ind1; ind++) {
+				struct jvst_ir_expr *slot;
+				slot = ir_expr_new(JVST_IR_EXPR_SLOT);
+				slot->u.slot.ind = ind;
+				jvst_ir_varlist_add(vl, slot);
+			}
+		}
+		return;
+
+	case JVST_IR_EXPR_BCOUNT:
 		fprintf(stderr, "%s:%d (%s) live analysis of IR expression %s not yet implemented\n",
 				__FILE__, __LINE__, __func__, 
 				jvst_ir_expr_type_name(expr->type));
@@ -5039,11 +5058,49 @@ collect_variables_stmt(struct jvst_ir_stmt *stmt, struct jvst_ir_varlist *kill, 
 		}
 		return;
 
-	case JVST_IR_STMT_SPLITVEC:
 	case JVST_IR_STMT_BSET:
-		// from bitvectors
+		{
+			struct jvst_ir_stmt *bitvec;
+			struct jvst_ir_expr *slot;
+			size_t ind;
+
+			bitvec = stmt->u.bitop.bitvec;
+			assert(bitvec != NULL);
+			assert(bitvec->type == JVST_IR_STMT_BITVECTOR);
+
+			ind = bitvec->u.bitvec.frame_off + stmt->u.bitop.bit / 64;
+
+			slot = ir_expr_new(JVST_IR_EXPR_SLOT);
+			slot->u.slot.ind = ind;
+
+			jvst_ir_varlist_add(kill, slot);
+			jvst_ir_varlist_add(gen, slot);
+		}
+		return;
+
+	case JVST_IR_STMT_SPLITVEC:
+		{
+			struct jvst_ir_stmt *bitvec;
+			size_t ind0, ind1, ind;
+
+			bitvec = stmt->u.splitvec.bitvec;
+			assert(bitvec != NULL);
+			assert(bitvec->type == JVST_IR_STMT_BITVECTOR);
+
+			ind0 = bitvec->u.bitvec.frame_off;
+			ind1 = bitvec->u.bitvec.frame_off + bitvec->u.bitvec.nslots - 1;
+
+			for (ind = ind0; ind <= ind1; ind++) {
+				struct jvst_ir_expr *slot;
+				slot = ir_expr_new(JVST_IR_EXPR_SLOT);
+				slot->u.slot.ind = ind;
+				jvst_ir_varlist_add(kill, slot);
+			}
+		}
+		return;
 
 	case JVST_IR_STMT_BCLEAR:
+		// from bitvectors
 		fprintf(stderr, "%s:%d (%s) live analysis of IR statement %s not yet implemented\n",
 				__FILE__, __LINE__, __func__, 
 				jvst_ir_stmt_type_name(stmt->type));
