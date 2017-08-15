@@ -167,7 +167,6 @@ static void test_ir_type_integer(void)
           live_in,   1, newir_expr(&A, JVST_IR_EXPR_TOK_TYPE),
           live_out,  0,
 
-
           newir_block(&A, 7, "invalid_2",
             newir_invalid(&A, JVST_INVALID_NOT_INTEGER, "number is not an integer"),
             live_in,   0,
