@@ -3615,12 +3615,6 @@ arr_translate_contains_or_unique(struct jvst_ir_stmt *arr_item, struct ir_arr_bu
 	}
 	frp = &(*frp)->next;
 
-	// the next bit should be the unique condition, if any...
-	if (builder->unique_items) {
-		*frp = ir_unique_item_frame();
-		frp = &(*frp)->next;
-	}
-
 	// now the constraints...
 	for (fr = builder->contains; fr != NULL; fr = fr->next) {
 		assert(fr->type == JVST_IR_STMT_FRAME);
@@ -3656,25 +3650,6 @@ arr_translate_contains_or_unique(struct jvst_ir_stmt *arr_item, struct ir_arr_bu
 		ilpp = &br->next;
 	}
 
-	if (builder->unique_items) {
-		struct jvst_ir_expr *cond;
-		struct jvst_ir_stmt *br;
-
-		// for each item, test that the item is unique
-		// SPLITV stores the result of the unique constraint at bit 1
-		cond = ir_expr_new(JVST_IR_EXPR_BTEST);
-		cond->u.btest.frame = builder->frame;
-		cond->u.btest.bitvec = builder->bvec_uctmp;
-		cond->u.btest.b0 = 1;
-		cond->u.btest.b1 = 1;
-
-		br = ir_stmt_if(cond,
-			ir_stmt_new(JVST_IR_STMT_NOP),
-			ir_stmt_invalid(JVST_INVALID_NOT_UNIQUE));
-		*ilpp = br;
-		ilpp = &br->next;
-	}
-
 	// Test contains conditions
 	{
 		for (i=0; i < n; i++) {
@@ -3702,13 +3677,6 @@ arr_translate_contains_or_unique(struct jvst_ir_stmt *arr_item, struct ir_arr_bu
 
 	return ilpp;
 }
-
-/*
-static struct jvst_ir_stmt **
-arr_translate_contains_or_unique(struct jvst_ir_stmt *arr_item, struct ir_arr_builder *builder, struct jvst_ir_stmt **ilpp)
-{
-}
-*/
 
 static struct jvst_ir_stmt *
 ir_translate_array(struct jvst_cnode *top, struct jvst_ir_stmt *frame)
@@ -3754,7 +3722,8 @@ ir_translate_array(struct jvst_cnode *top, struct jvst_ir_stmt *frame)
 	//
 	// we could pre-allocate this, but we'll do it as we build up
 	// the IR for the unique and containts constraints
-	if (builder.unique_items || builder.contains != NULL) {
+	// if (builder.unique_items || builder.contains != NULL) {
+	if (builder.contains != NULL) {
 		builder.bvec_uctmp = ir_stmt_bitvec(frame, "uniq_contains_split", 0); // determine nbits later
 	}
 
@@ -3771,14 +3740,8 @@ ir_translate_array(struct jvst_cnode *top, struct jvst_ir_stmt *frame)
 	if (builder.unique_items) {
 		struct jvst_ir_stmt *seq, **seqpp;
 
-		// allocate the first two bits in bvec_uctmp:
-		// bit 0: item constraint
-		// bit 1: unique constraint
-		builder.bvec_uctmp->u.bitvec.nbits += 2;
-
 		*spp = ir_stmt_new(JVST_IR_STMT_UNIQUE_INIT);
 		spp = &(*spp)->next;
-
 
 		seq = ir_stmt_new(JVST_IR_STMT_SEQ);
 		seqpp = &seq->u.stmt_list;
@@ -3791,14 +3754,12 @@ ir_translate_array(struct jvst_cnode *top, struct jvst_ir_stmt *frame)
 
 	// If we have more than one thing to do each-item, wrap them in
 	// a SEQ.
-	if (builder.each != NULL) {
-		if (builder.each->next != NULL) {
-			struct jvst_ir_stmt *seq;
+	if (builder.each != NULL && builder.each->next != NULL) {
+		struct jvst_ir_stmt *seq;
 
-			seq = ir_stmt_new(JVST_IR_STMT_SEQ);
-			seq->u.stmt_list = builder.each;
-			builder.each = seq;
-		}
+		seq = ir_stmt_new(JVST_IR_STMT_SEQ);
+		seq->u.stmt_list = builder.each;
+		builder.each = seq;
 	}
 
 	// for contains constraints, we need to check that the
@@ -3906,6 +3867,11 @@ ir_translate_array(struct jvst_cnode *top, struct jvst_ir_stmt *frame)
 		*spp = seq;
 		spp = &seq->u.stmt_list;
 
+		if (builder.unique_items) {
+			*spp = ir_stmt_new(JVST_IR_STMT_UNIQUE_TOK);
+			spp = &(*spp)->next;
+		}
+
 		// unget the token so the item constraint (or split) can
 		// check it
 		*spp = ir_stmt_new(JVST_IR_STMT_UNTOKEN);
@@ -3919,7 +3885,8 @@ ir_translate_array(struct jvst_cnode *top, struct jvst_ir_stmt *frame)
 			spp = &each->next;
 		}
 
-		if (builder.contains != NULL || builder.unique_items) {
+		// if (builder.contains != NULL || builder.unique_items) {
+		if (builder.contains != NULL) {
 			// add SPLITV and code to check its results
 			spp = arr_translate_contains_or_unique(it, &builder, spp);
 		} else {
@@ -3958,7 +3925,8 @@ ir_translate_array(struct jvst_cnode *top, struct jvst_ir_stmt *frame)
 			ilpp = &builder.each->next;
 		}
 
-		if (builder.contains != NULL || builder.unique_items) {
+		// if (builder.contains != NULL || builder.unique_items) {
+		if (builder.contains != NULL) {
 			// add SPLITv and code to check its results
 			ilpp = arr_translate_contains_or_unique(builder.additional, &builder, ilpp);
 		} else {
@@ -3979,6 +3947,12 @@ ir_translate_array(struct jvst_cnode *top, struct jvst_ir_stmt *frame)
 			// wrap stmts in a SEQ
 			seq = ir_stmt_new(JVST_IR_STMT_SEQ);
 			seqpp = &seq->u.stmt_list;
+
+			if (builder.unique_items) {
+				*seqpp = ir_stmt_new(JVST_IR_STMT_UNIQUE_TOK);
+				seqpp = &(*seqpp)->next;
+			}
+
 			*seqpp = ir_stmt_new(JVST_IR_STMT_UNTOKEN);
 			seqpp = &(*seqpp)->next;
 			*seqpp = stmts;

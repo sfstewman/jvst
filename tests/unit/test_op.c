@@ -4712,7 +4712,6 @@ void test_op_unique_1(void)
           SJP_NONE),
 
       newir_frame(&A,
-        newir_bitvec(&A, 0, "uniq_contains_split", 2),
         newir_stmt(&A, JVST_IR_STMT_TOKEN),
         newir_if(&A, newir_istok(&A, SJP_OBJECT_END),
           newir_invalid(&A, JVST_INVALID_UNEXPECTED_TOKEN, "unexpected token"),
@@ -4725,30 +4724,9 @@ void test_op_unique_1(void)
                   newir_if(&A, newir_istok(&A, SJP_ARRAY_END),
                     newir_break(&A, "ARR_OUTER", 0),
                     newir_seq(&A,
+                      newir_stmt(&A, JVST_IR_STMT_UNIQUE_TOK),
                       newir_stmt(&A, JVST_IR_STMT_UNTOKEN),
-                      newir_splitvec(&A, 0, "uniq_contains_split",
-                        newir_frame(&A,
-                          newir_stmt(&A, JVST_IR_STMT_CONSUME),
-                          newir_stmt(&A, JVST_IR_STMT_VALID),
-                          NULL
-                        ),
-
-                        newir_frame(&A,
-                          newir_stmt(&A, JVST_IR_STMT_UNIQUE_TOK),
-                          NULL
-                        ),
-
-                        NULL
-                      ),
-
-                      newir_seq(&A,
-                        newir_if(&A, newir_btest(&A, 0, "uniq_contains_split", 1),
-                          newir_stmt(&A, JVST_IR_STMT_NOP),
-                          newir_invalid(&A, JVST_INVALID_NOT_UNIQUE, "array elements are not unique")
-                        ),
-
-                        NULL
-                      ),
+                      newir_stmt(&A, JVST_IR_STMT_CONSUME),
 
                       NULL
                     )
@@ -4783,11 +4761,7 @@ void test_op_unique_1(void)
       ),
 
       newop_program(&A,
-          opsplit, 2, 1, 2,
-
           newop_proc(&A,
-            opslots, 2,
-
             oplabel, "entry_0",
             newop_instr(&A, JVST_OP_TOKEN),
             newop_cmp(&A, JVST_OP_ICMP, oparg_tt(), oparg_tok(SJP_OBJECT_END)),
@@ -4797,14 +4771,14 @@ void test_op_unique_1(void)
             newop_cmp(&A, JVST_OP_ICMP, oparg_tt(), oparg_tok(SJP_ARRAY_BEG)),
             newop_br(&A, JVST_VM_BR_EQ, "true_6"),
 
-            oplabel, "false_19",
+            oplabel, "false_15",
             newop_cmp(&A, JVST_OP_ICMP, oparg_tt(), oparg_tok(SJP_ARRAY_END)),
             newop_br(&A, JVST_VM_BR_EQ, "invalid_1_3"),
 
-            oplabel, "false_22",
+            oplabel, "false_18",
             newop_instr(&A, JVST_OP_CONSUME),
 
-            oplabel, "valid_18",
+            oplabel, "valid_14",
             newop_return(&A, 0),
 
             oplabel, "true_6",
@@ -4816,22 +4790,14 @@ void test_op_unique_1(void)
             newop_br(&A, JVST_VM_BR_EQ, "loop_end_7"),
 
             oplabel, "false_13",
+            newop_instr2(&A, JVST_OP_UNIQUE, oparg_lit(JVST_VM_UNIQUE_EVAL), oparg_lit(0)),
             newop_instr2(&A, JVST_OP_TOKEN, oparg_lit(0), oparg_lit(-1)),
-            newop_instr2(&A, JVST_OP_SPLITV, oparg_lit(0), oparg_slot(0)),
-            newop_load(&A, JVST_OP_MOVE, oparg_slot(1), oparg_slot(0)),
-            newop_instr2(&A, JVST_OP_BAND, oparg_slot(1), oparg_lit(2)),
-            newop_cmp(&A, JVST_OP_ICMP, oparg_slot(1), oparg_lit(2)),
-            newop_br(&A, JVST_VM_BR_EQ, "true_15"),
-
-            oplabel, "invalid_18_17",
-            newop_return(&A, 18),
-
-            oplabel, "true_15",
+            newop_instr(&A, JVST_OP_CONSUME),
             newop_br(&A, JVST_VM_BR_ALWAYS, "loop_10"),
 
             oplabel, "loop_end_7",
             newop_instr2(&A, JVST_OP_UNIQUE, oparg_lit(JVST_VM_UNIQUE_FINAL), oparg_lit(0)),
-            newop_br(&A, JVST_VM_BR_ALWAYS, "valid_18"),
+            newop_br(&A, JVST_VM_BR_ALWAYS, "valid_14"),
 
             oplabel, "invalid_1_3",
             newop_return(&A, 1),
@@ -4839,27 +4805,6 @@ void test_op_unique_1(void)
             NULL
           ),
 
-          newop_proc(&A,
-            opslots, 0,
-
-            oplabel, "entry_0",
-            newop_instr(&A, JVST_OP_CONSUME),
-
-            oplabel, "valid_1",
-            newop_return(&A, 0),
-
-            NULL
-          ),
-
-          newop_proc(&A,
-            opslots, 0,
-
-            oplabel, "entry_0",
-            newop_instr2(&A, JVST_OP_UNIQUE, oparg_lit(JVST_VM_UNIQUE_EVAL), oparg_lit(0)),
-
-            NULL
-          ),
-              
           NULL
       )
     },
