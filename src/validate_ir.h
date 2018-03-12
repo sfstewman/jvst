@@ -129,6 +129,8 @@ enum jvst_ir_expr_type {
 	JVST_IR_EXPR_ITEMP,		// ITEMP(n) integer temporary n
 	JVST_IR_EXPR_FTEMP,		// FTEMP(n) floating point temporary n
 	JVST_IR_EXPR_SEQ,		// ESEQ(s, e) statement s, then return expression e
+
+	JVST_IR_EXPR_UNIQUE_DONE,	// Has UNIQUE encountered a closing ']' to the array?
 };
 
 enum jvst_invalid_code {

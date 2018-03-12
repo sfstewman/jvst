@@ -626,6 +626,7 @@ ir_expr_tmp(struct jvst_ir_stmt *frame, struct jvst_ir_expr *expr)
 	case JVST_IR_EXPR_AND:
 	case JVST_IR_EXPR_OR:
 	case JVST_IR_EXPR_NOT:
+	case JVST_IR_EXPR_UNIQUE_DONE:
 		fprintf(stderr, "%s:%d (%s) cannot assign temporary to boolean expression %s\n",
 			__FILE__, __LINE__, __func__, jvst_ir_expr_type_name(expr->type));
 		abort();
@@ -719,6 +720,7 @@ ir_expr_op(enum jvst_ir_expr_type op,
 	case JVST_IR_EXPR_FTEMP:
 	case JVST_IR_EXPR_SEQ:
 	case JVST_IR_EXPR_MATCH:
+	case JVST_IR_EXPR_UNIQUE_DONE:
 		fprintf(stderr, "invalid OP type: %s\n", jvst_ir_expr_type_name(op));
 		abort();
 	}
@@ -1003,6 +1005,8 @@ jvst_ir_expr_type_name(enum jvst_ir_expr_type type)
 	case JVST_IR_EXPR_MATCH:
 		return "EMATCH";
 
+	case JVST_IR_EXPR_UNIQUE_DONE:
+		return "UNIQUE_DONE";
 	}
 
 	fprintf(stderr, "%s:%d (%s) unknown IR expression node type %d\n",
@@ -1045,6 +1049,7 @@ jvst_ir_dump_expr(struct sbuf *buf, const struct jvst_ir_expr *expr, int indent)
 {
 	sbuf_indent(buf, indent);
 	switch (expr->type) {
+	case JVST_IR_EXPR_UNIQUE_DONE:
 	case JVST_IR_EXPR_TOK_TYPE:
 	case JVST_IR_EXPR_TOK_NUM:
 	case JVST_IR_EXPR_TOK_LEN:
@@ -3560,11 +3565,60 @@ ir_translate_array_inner(struct jvst_cnode *top, struct ir_arr_builder *builder)
 static struct jvst_ir_stmt *
 ir_unique_item_frame(void)
 {
-	struct jvst_ir_stmt *fr, **spp;
+	struct jvst_ir_stmt *fr, **spp, *loop, **lpp;
 	fr = ir_stmt_frame();
 	spp = &fr->u.frame.stmts;
 
-	*spp = ir_stmt_new(JVST_IR_STMT_UNIQUE_TOK);
+	// The unique item frame consists of a single statement:
+	// UNIQUE_LOOP.
+	//
+	// 1. Initialize the unique state with a UNIQUE_INIT
+	//    instruction.
+	//
+	// 2. In a loop:
+	// 
+	//    a. fetch the next token, run UNIQUE_TOK to evaluate it.
+	//
+	//    b. If the unique state indicates a violation, return the
+	//       error.
+	//
+	//    c. If the unique loop is done, exit the loop
+	//
+	// 3. Finalize the unique state with a UNIQUE_FINAL instruction
+	//    after the loop
+	//
+	// 4. Return VALID
+	//
+	// NB: The UNIQUE_INIT instruction indicates that the remaining
+	// code in this frame will check for uniqueness.
+	// Implementations may enter a unique-checking loop after the
+	// UNIQUE_INIT and ignore the rest of the instructions.
+	//
+	*spp = ir_stmt_new(JVST_IR_STMT_UNIQUE_INIT);
+	spp = &(*spp)->next;
+
+	loop = ir_stmt_loop(fr, "UNIQ_LOOP");
+	*spp = loop;
+	spp = &(*spp)->next;
+
+	lpp = &loop->u.loop.stmts;
+
+	{
+		*lpp = ir_stmt_new(JVST_IR_STMT_TOKEN);
+		lpp = &(*lpp)->next;
+
+		*lpp = ir_stmt_new(JVST_IR_STMT_UNIQUE_TOK);
+		lpp = &(*lpp)->next;
+
+		*lpp = ir_stmt_if(ir_expr_new(JVST_IR_EXPR_UNIQUE_DONE),
+			ir_stmt_break(loop),
+			ir_stmt_new(JVST_IR_STMT_NOP));
+	}
+
+	*spp = ir_stmt_new(JVST_IR_STMT_UNIQUE_FINAL);
+	spp = &(*spp)->next;
+
+	*spp = ir_stmt_valid();
 	spp = &(*spp)->next;
 
 	return fr;
@@ -3751,15 +3805,9 @@ ir_translate_array(struct jvst_cnode *top, struct jvst_ir_stmt *frame)
 		builder.bvec_uctmp = ir_stmt_bitvec(frame, "uniq_contains_split", 0); // determine nbits later
 	}
 
-	// For unique constraints, we need to:
-	//
-	// 1. allocate two bits for a SPLITV (one for the item
-	//    constraint, one for the unique constraint).
-	//
-	// 2. insert a UNIQUE_INIT instruction before we start
-	//    processing array items
-	//
-	// 3. add a UNIQUE_FINAL instruction after the loop
+	// For unique constraints, we need to allocate two bits for a
+	//   SPLITV (one for the item constraint, one for the unique
+	//   constraint).
 	//
 	if (builder.unique_items) {
 		struct jvst_ir_stmt *seq, **seqpp;
@@ -3769,17 +3817,6 @@ ir_translate_array(struct jvst_cnode *top, struct jvst_ir_stmt *frame)
 		// bit 1: unique constraint
 		builder.bvec_uctmp->u.bitvec.nbits += 2;
 
-		*spp = ir_stmt_new(JVST_IR_STMT_UNIQUE_INIT);
-		spp = &(*spp)->next;
-
-
-		seq = ir_stmt_new(JVST_IR_STMT_SEQ);
-		seqpp = &seq->u.stmt_list;
-		*seqpp = ir_stmt_new(JVST_IR_STMT_UNIQUE_FINAL);
-		seqpp = &(*seqpp)->next;
-
-		*builder.postpp = seq;
-		builder.postpp = seqpp;
 	}
 
 	// If we have more than one thing to do each-item, wrap them in
@@ -4293,6 +4330,9 @@ jvst_ir_expr_copy(struct jvst_ir_expr *ir, struct addr_fixup_list *fixups, struc
 	copy = ir_expr_new(ir->type);
 
 	switch (ir->type) {
+	case JVST_IR_EXPR_UNIQUE_DONE:
+		return copy;
+
 	case JVST_IR_EXPR_ISTOK:
 		copy->u.istok = ir->u.istok;
 		return copy;
@@ -5633,6 +5673,7 @@ ir_linearize_cond(struct op_linearizer *oplin, struct jvst_ir_expr *cond, struct
 	case JVST_IR_EXPR_ISTOK:
 	case JVST_IR_EXPR_ISINT:
 	case JVST_IR_EXPR_MULTIPLE_OF:
+	case JVST_IR_EXPR_UNIQUE_DONE:
 		brcond = cond;
 		break;
 
@@ -5789,6 +5830,7 @@ ir_linearize_rewrite_expr(struct jvst_ir_stmt *frame, struct jvst_ir_expr *expr)
 	case JVST_IR_EXPR_BTESTALL:
 	case JVST_IR_EXPR_BTESTANY:
 	case JVST_IR_EXPR_BTESTONE:
+	case JVST_IR_EXPR_UNIQUE_DONE:
 		return expr;
 
 	case JVST_IR_EXPR_NE:

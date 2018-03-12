@@ -466,6 +466,11 @@ static void uniq_add_entry(struct jvst_vm_unique *uniq, struct jvst_vm_uniq_entr
  *
  */
 
+int
+jvst_vm_uniq_isdone(struct jvst_vm_unique *uniq)
+{
+	return uniq->top == 0 && uniq->stack[uniq->top].state == JVST_VM_UNIQ_DONE;
+}
 
 int
 jvst_vm_uniq_evaluate(struct jvst_vm_unique *uniq, enum SJP_RESULT pret, struct sjp_event *evt)
@@ -482,6 +487,10 @@ jvst_vm_uniq_evaluate(struct jvst_vm_unique *uniq, enum SJP_RESULT pret, struct 
 	}
 
 	assert(pret == SJP_OK);
+
+	if (jvst_vm_uniq_isdone(uniq)) {
+		return 1;
+	}
 
 	switch (evt->type) {
 	case SJP_NULL:
@@ -503,9 +512,13 @@ jvst_vm_uniq_evaluate(struct jvst_vm_unique *uniq, enum SJP_RESULT pret, struct 
 		return 1;
 
 	case SJP_ARRAY_END:
-		assert(uniq->stack[uniq->top].state == JVST_VM_UNIQ_ARRAY);
-		entry = array_entry(uniq);
-		uniq_stack_final(&uniq->stack[uniq->top--]);
+		if (uniq->top == 0) {
+			uniq->stack[uniq->top].state = JVST_VM_UNIQ_DONE;
+		} else {
+			assert(uniq->stack[uniq->top].state == JVST_VM_UNIQ_ARRAY);
+			entry = array_entry(uniq);
+			uniq_stack_final(&uniq->stack[uniq->top--]);
+		}
 		break;
 
 	case SJP_OBJECT_BEG:

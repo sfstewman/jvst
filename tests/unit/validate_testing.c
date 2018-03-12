@@ -1961,6 +1961,7 @@ newir_op(struct arena_info *A, enum jvst_ir_expr_type op,
 	case JVST_IR_EXPR_FTEMP:
 	case JVST_IR_EXPR_SEQ:
 	case JVST_IR_EXPR_MATCH:
+	case JVST_IR_EXPR_UNIQUE_DONE:
 		fprintf(stderr, "invalid OP type: %s\n", jvst_ir_expr_type_name(op));
 		abort();
 	}

@@ -79,7 +79,7 @@ enum jvst_vm_op {
 
 	JVST_OP_RETURN,		// Returns VALID or raises an INVALID result.  INVALID results have an error code.
 
-	JVST_OP_UNIQUE,		// Initializes UNIQUE data, finalizes UNIQUE data, or evaluates for UNIQUE
+	JVST_OP_UNIQUE,		// Initializes UNIQUE data, finalizes UNIQUE data, evaluates for UNIQUE, determines if UNIQUE is finished
 };
 
 #define JVST_OP_MAX JVST_OP_RETURN
@@ -99,6 +99,7 @@ enum jvst_vm_unique_arg {
 	JVST_VM_UNIQUE_INIT  = 0,
 	JVST_VM_UNIQUE_EVAL  = 1,
 	JVST_VM_UNIQUE_FINAL = 2,
+	JVST_VM_UNIQUE_ISDONE = 3,
 };
 
 /* VM opcode encoding:

@@ -28,6 +28,7 @@ enum jvst_vm_uniq_state {
   JVST_VM_UNIQ_ARRAY,
   JVST_VM_UNIQ_OBJKEY,
   JVST_VM_UNIQ_OBJVAL,
+  JVST_VM_UNIQ_DONE,
 };
 
 struct hmap;
@@ -78,6 +79,9 @@ jvst_vm_uniq_finalize(struct jvst_vm_unique *uniq);
 
 int
 jvst_vm_uniq_evaluate(struct jvst_vm_unique *uniq, enum SJP_RESULT pret, struct sjp_event *evt);
+
+int
+jvst_vm_uniq_isdone(struct jvst_vm_unique *uniq);
 
 #undef MODULE_NAME
 

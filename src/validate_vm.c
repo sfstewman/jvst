@@ -21,7 +21,7 @@
 #define DEBUG_STEP    0				// instruction-by-instruction execution of the VM
 #define DEBUG_TOKENS  (debug & DEBUG_VMTOK)	// displays tokens as they're read
 #define DEBUG_BSEARCH 0				// debugs DFA binary search
-#define DEBUG_SPLITV  0				// debugs how SPLITV sets its result masks
+#define DEBUG_SPLITV  1				// debugs how SPLITV sets its result masks
 
 // XXX - replace with something better at some point
 //       (maybe a longjmp to an error handler?)
@@ -1535,6 +1535,10 @@ loop:
 					ret = JVST_INVALID;
 					goto finish;
 				}
+				break;
+
+			case JVST_VM_UNIQUE_ISDONE:
+				vm->r_flag = flag = jvst_vm_uniq_isdone(vm->uniq);
 				break;
 
 			case JVST_VM_UNIQUE_FINAL:

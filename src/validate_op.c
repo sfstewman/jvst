@@ -993,6 +993,7 @@ emit_cond(struct op_assembler *opasm, enum jvst_vm_op op,
 	case JVST_OP_ICMP:
 	case JVST_OP_FCMP:
 	case JVST_OP_FINT:
+	case JVST_OP_UNIQUE:
 		instr = op_instr_new(op);
 		instr->args[0] = a0;
 		instr->args[1] = a1;
@@ -1016,7 +1017,6 @@ emit_cond(struct op_assembler *opasm, enum jvst_vm_op op,
 	case JVST_OP_BAND:
 	case JVST_OP_RETURN:
 	case JVST_OP_MOVE:
-	case JVST_OP_UNIQUE:
 		fprintf(stderr, "op %s is not a conditional\n", jvst_op_name(op));
 		abort();
 	}
@@ -1186,6 +1186,7 @@ ir_expr_type(enum jvst_ir_expr_type type)
 	case JVST_IR_EXPR_EQ:
 	case JVST_IR_EXPR_GE:
 	case JVST_IR_EXPR_GT:
+	case JVST_IR_EXPR_UNIQUE_DONE:
 		return ARG_BOOL;
 
 	case JVST_IR_EXPR_AND:
@@ -1321,6 +1322,7 @@ emit_op_arg(struct op_assembler *opasm, struct jvst_ir_expr *arg)
 				jvst_ir_expr_type_name(arg->type));
 		abort();
 
+	case JVST_IR_EXPR_UNIQUE_DONE:
 	case JVST_IR_EXPR_BTEST:
 	case JVST_IR_EXPR_BTESTALL:
 	case JVST_IR_EXPR_BTESTANY:
@@ -1391,6 +1393,7 @@ cmp_br_type(enum jvst_ir_expr_type type)
 	case JVST_IR_EXPR_FTEMP:
 	case JVST_IR_EXPR_SEQ:
 	case JVST_IR_EXPR_MATCH:
+	case JVST_IR_EXPR_UNIQUE_DONE:
 		fprintf(stderr, "%s:%d (%s) IR expression %s is not a comparison\n",
 			__FILE__, __LINE__, __func__, jvst_ir_expr_type_name(type));
 		abort();
@@ -1666,6 +1669,12 @@ op_assemble_cond(struct op_assembler *opasm, struct jvst_ir_expr *cond)
 			emit_cond(opasm, JVST_OP_ICMP, ireg1, icmp);
 			return brc;
 		}
+
+	case JVST_IR_EXPR_UNIQUE_DONE:
+		emit_cond(opasm, JVST_OP_UNIQUE,
+			arg_const(JVST_VM_UNIQUE_ISDONE), arg_const(0));
+		return JVST_VM_BR_NE;
+
 
 	case JVST_IR_EXPR_BOOL:
 	case JVST_IR_EXPR_BTESTONE:

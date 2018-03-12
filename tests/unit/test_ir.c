@@ -6108,7 +6108,6 @@ static void test_ir_unique_1(void)
           newir_invalid(&A, JVST_INVALID_UNEXPECTED_TOKEN, "unexpected token"),
           newir_if(&A, newir_istok(&A, SJP_ARRAY_BEG),
             newir_seq(&A,
-              newir_stmt(&A, JVST_IR_STMT_UNIQUE_INIT),
               newir_loop(&A, "ARR_OUTER", 0,
                 newir_loop(&A, "ARR_INNER", 1,
                   newir_stmt(&A, JVST_IR_STMT_TOKEN),
@@ -6124,7 +6123,18 @@ static void test_ir_unique_1(void)
                         ),
 
                         newir_frame(&A,
-                          newir_stmt(&A, JVST_IR_STMT_UNIQUE_TOK),
+                          newir_stmt(&A, JVST_IR_STMT_UNIQUE_INIT),
+                          newir_loop(&A, "UNIQ_LOOP", 0,
+                            newir_stmt(&A, JVST_IR_STMT_TOKEN),
+                            newir_stmt(&A, JVST_IR_STMT_UNIQUE_TOK),
+                            newir_if(&A, newir_expr(&A, JVST_IR_EXPR_UNIQUE_DONE),
+                              newir_break(&A, "UNIQ_LOOP", 0),
+                              newir_stmt(&A, JVST_IR_STMT_NOP)
+                            ),
+                            NULL
+                          ),
+                          newir_stmt(&A, JVST_IR_STMT_UNIQUE_FINAL),
+                          newir_stmt(&A, JVST_IR_STMT_VALID),
                           NULL
                         ),
 
@@ -6150,11 +6160,7 @@ static void test_ir_unique_1(void)
                 NULL
               ),
 
-              newir_seq(&A,
-                newir_stmt(&A, JVST_IR_STMT_UNIQUE_FINAL),
-                newir_stmt(&A, JVST_IR_STMT_VALID),
-                NULL
-              ),
+              newir_stmt(&A, JVST_IR_STMT_VALID),
 
               NULL
             ),
@@ -6186,7 +6192,6 @@ static void test_ir_unique_1(void)
           newir_invalid(&A, JVST_INVALID_UNEXPECTED_TOKEN, "unexpected token"),
           newir_if(&A, newir_istok(&A, SJP_ARRAY_BEG),
             newir_seq(&A,
-              newir_stmt(&A, JVST_IR_STMT_UNIQUE_INIT),
               newir_loop(&A, "ARR_OUTER", 0,
                 newir_loop(&A, "ARR_INNER", 1,
                   newir_stmt(&A, JVST_IR_STMT_TOKEN),
@@ -6202,7 +6207,18 @@ static void test_ir_unique_1(void)
                         ),
 
                         newir_frame(&A,
-                          newir_stmt(&A, JVST_IR_STMT_UNIQUE_TOK),
+                          newir_stmt(&A, JVST_IR_STMT_UNIQUE_INIT),
+                          newir_loop(&A, "UNIQ_LOOP", 0,
+                            newir_stmt(&A, JVST_IR_STMT_TOKEN),
+                            newir_stmt(&A, JVST_IR_STMT_UNIQUE_TOK),
+                            newir_if(&A, newir_expr(&A, JVST_IR_EXPR_UNIQUE_DONE),
+                              newir_break(&A, "UNIQ_LOOP", 0),
+                              newir_stmt(&A, JVST_IR_STMT_NOP)
+                            ),
+                            NULL
+                          ),
+                          newir_stmt(&A, JVST_IR_STMT_UNIQUE_FINAL),
+                          newir_stmt(&A, JVST_IR_STMT_VALID),
                           NULL
                         ),
 
@@ -6228,11 +6244,7 @@ static void test_ir_unique_1(void)
                 NULL
               ),
 
-              newir_seq(&A,
-                newir_stmt(&A, JVST_IR_STMT_UNIQUE_FINAL),
-                newir_stmt(&A, JVST_IR_STMT_VALID),
-                NULL
-              ),
+              newir_stmt(&A, JVST_IR_STMT_VALID),
 
               NULL
             ),
@@ -6265,7 +6277,7 @@ static void test_ir_unique_1(void)
 
             newir_block(&A, 4, "false",
               newir_cbranch(&A, newir_istok(&A, SJP_ARRAY_BEG),
-                6, "true",
+                10, "loop",
                 19, "false"
               ),
               NULL
@@ -6290,16 +6302,10 @@ static void test_ir_unique_1(void)
               NULL
             ),
 
-            newir_block(&A, 6, "true",
-              newir_stmt(&A, JVST_IR_STMT_UNIQUE_INIT),
-              newir_branch(&A, 10, "loop"),
-              NULL
-            ),
-
             newir_block(&A, 10, "loop",
               newir_stmt(&A, JVST_IR_STMT_TOKEN),
               newir_cbranch(&A, newir_istok(&A, SJP_ARRAY_END),
-                7, "loop_end",
+                18, "valid",
                 13, "false"
               ),
               NULL
@@ -6323,12 +6329,6 @@ static void test_ir_unique_1(void)
             newir_block(&A, 15, "true",
               newir_stmt(&A, JVST_IR_STMT_NOP),
               newir_branch(&A, 10, "loop"),
-              NULL
-            ),
-
-            newir_block(&A, 7, "loop_end",
-              newir_stmt(&A, JVST_IR_STMT_UNIQUE_FINAL),
-              newir_branch(&A, 18, "valid"),
               NULL
             ),
 
@@ -6357,7 +6357,35 @@ static void test_ir_unique_1(void)
 
           newir_frame(&A, frameindex, 3,
             newir_block(&A, 0, "entry",
+              newir_stmt(&A, JVST_IR_STMT_UNIQUE_INIT),
+              newir_branch(&A, 2, "loop"),
+              NULL
+            ),
+
+            newir_block(&A, 2, "loop",
+              newir_stmt(&A, JVST_IR_STMT_TOKEN),
               newir_stmt(&A, JVST_IR_STMT_UNIQUE_TOK),
+              newir_cbranch(&A, newir_expr(&A, JVST_IR_EXPR_UNIQUE_DONE),
+                1, "loop_end",
+                5, "false"
+              ),
+              NULL
+            ),
+
+            newir_block(&A, 5, "false",
+              newir_stmt(&A, JVST_IR_STMT_NOP),
+              newir_branch(&A, 2, "loop"),
+              NULL
+            ),
+
+            newir_block(&A, 1, "loop_end",
+              newir_stmt(&A, JVST_IR_STMT_UNIQUE_FINAL),
+              newir_branch(&A, 6, "valid"),
+              NULL
+            ),
+
+            newir_block(&A, 6, "valid",
+              newir_stmt(&A, JVST_IR_STMT_VALID),
               NULL
             ),
 
@@ -6393,7 +6421,6 @@ static void test_ir_unique_1(void)
           newir_invalid(&A, JVST_INVALID_UNEXPECTED_TOKEN, "unexpected token"),
           newir_if(&A, newir_istok(&A, SJP_ARRAY_BEG),
             newir_seq(&A,
-              newir_stmt(&A, JVST_IR_STMT_UNIQUE_INIT),
               newir_loop(&A, "ARR_OUTER", 0,
                 newir_stmt(&A, JVST_IR_STMT_TOKEN),
                 newir_if(&A, newir_istok(&A, SJP_ARRAY_END),
@@ -6415,7 +6442,18 @@ static void test_ir_unique_1(void)
                       ),
 
                       newir_frame(&A,
-                        newir_stmt(&A, JVST_IR_STMT_UNIQUE_TOK),
+                        newir_stmt(&A, JVST_IR_STMT_UNIQUE_INIT),
+                        newir_loop(&A, "UNIQ_LOOP", 0,
+                          newir_stmt(&A, JVST_IR_STMT_TOKEN),
+                          newir_stmt(&A, JVST_IR_STMT_UNIQUE_TOK),
+                          newir_if(&A, newir_expr(&A, JVST_IR_EXPR_UNIQUE_DONE),
+                            newir_break(&A, "UNIQ_LOOP", 0),
+                            newir_stmt(&A, JVST_IR_STMT_NOP)
+                          ),
+                          NULL
+                        ),
+                        newir_stmt(&A, JVST_IR_STMT_UNIQUE_FINAL),
+                        newir_stmt(&A, JVST_IR_STMT_VALID),
                         NULL
                       ),
 
@@ -6448,7 +6486,18 @@ static void test_ir_unique_1(void)
                               ),
 
                               newir_frame(&A,
-                                newir_stmt(&A, JVST_IR_STMT_UNIQUE_TOK),
+                                newir_stmt(&A, JVST_IR_STMT_UNIQUE_INIT),
+                                newir_loop(&A, "UNIQ_LOOP", 0,
+                                  newir_stmt(&A, JVST_IR_STMT_TOKEN),
+                                  newir_stmt(&A, JVST_IR_STMT_UNIQUE_TOK),
+                                  newir_if(&A, newir_expr(&A, JVST_IR_EXPR_UNIQUE_DONE),
+                                    newir_break(&A, "UNIQ_LOOP", 0),
+                                    newir_stmt(&A, JVST_IR_STMT_NOP)
+                                    ),
+                                  NULL
+                                  ),
+                                newir_stmt(&A, JVST_IR_STMT_UNIQUE_FINAL),
+                                newir_stmt(&A, JVST_IR_STMT_VALID),
                                 NULL
                               ),
 
@@ -6482,11 +6531,7 @@ static void test_ir_unique_1(void)
                 NULL
               ),
 
-              newir_seq(&A,
-                newir_stmt(&A, JVST_IR_STMT_UNIQUE_FINAL),
-                newir_stmt(&A, JVST_IR_STMT_VALID),
-                NULL
-              ),
+              newir_stmt(&A, JVST_IR_STMT_VALID),
 
               NULL
             ),
@@ -6539,7 +6584,6 @@ static void test_ir_unique_1(void)
           newir_invalid(&A, JVST_INVALID_UNEXPECTED_TOKEN, "unexpected token"),
           newir_if(&A, newir_istok(&A, SJP_ARRAY_BEG),
             newir_seq(&A,
-              newir_stmt(&A, JVST_IR_STMT_UNIQUE_INIT),
               newir_loop(&A, "ARR_OUTER", 0,
                 newir_stmt(&A, JVST_IR_STMT_TOKEN),
                 newir_if(&A, newir_istok(&A, SJP_ARRAY_END),
@@ -6561,7 +6605,18 @@ static void test_ir_unique_1(void)
                       ),
 
                       newir_frame(&A,
-                        newir_stmt(&A, JVST_IR_STMT_UNIQUE_TOK),
+                        newir_stmt(&A, JVST_IR_STMT_UNIQUE_INIT),
+                        newir_loop(&A, "UNIQ_LOOP", 0,
+                          newir_stmt(&A, JVST_IR_STMT_TOKEN),
+                          newir_stmt(&A, JVST_IR_STMT_UNIQUE_TOK),
+                          newir_if(&A, newir_expr(&A, JVST_IR_EXPR_UNIQUE_DONE),
+                            newir_break(&A, "UNIQ_LOOP", 0),
+                            newir_stmt(&A, JVST_IR_STMT_NOP)
+                            ),
+                          NULL
+                          ),
+                        newir_stmt(&A, JVST_IR_STMT_UNIQUE_FINAL),
+                        newir_stmt(&A, JVST_IR_STMT_VALID),
                         NULL
                       ),
 
@@ -6627,7 +6682,18 @@ static void test_ir_unique_1(void)
                               ),
 
                               newir_frame(&A,
-                                newir_stmt(&A, JVST_IR_STMT_UNIQUE_TOK),
+                                newir_stmt(&A, JVST_IR_STMT_UNIQUE_INIT),
+                                newir_loop(&A, "UNIQ_LOOP", 0,
+                                  newir_stmt(&A, JVST_IR_STMT_TOKEN),
+                                  newir_stmt(&A, JVST_IR_STMT_UNIQUE_TOK),
+                                  newir_if(&A, newir_expr(&A, JVST_IR_EXPR_UNIQUE_DONE),
+                                    newir_break(&A, "UNIQ_LOOP", 0),
+                                    newir_stmt(&A, JVST_IR_STMT_NOP)
+                                    ),
+                                  NULL
+                                  ),
+                                newir_stmt(&A, JVST_IR_STMT_UNIQUE_FINAL),
+                                newir_stmt(&A, JVST_IR_STMT_VALID),
                                 NULL
                               ),
 
@@ -6693,13 +6759,9 @@ static void test_ir_unique_1(void)
                 NULL
               ),
 
-              newir_seq(&A,
-                newir_stmt(&A, JVST_IR_STMT_UNIQUE_FINAL),
-                newir_if(&A, newir_btest(&A, 1, "contains", 0),
-                  newir_stmt(&A, JVST_IR_STMT_VALID),
-                  newir_invalid(&A, JVST_INVALID_UNSATISFIED_CONTAINS, "contains constraint is not satisfied")
-                ),
-                NULL
+              newir_if(&A, newir_btest(&A, 1, "contains", 0),
+                newir_stmt(&A, JVST_IR_STMT_VALID),
+                newir_invalid(&A, JVST_INVALID_UNSATISFIED_CONTAINS, "contains constraint is not satisfied")
               ),
 
               NULL
